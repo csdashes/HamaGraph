@@ -10,3 +10,8 @@
 *.mf
 
 *.properties
+/HamaGraphCommunityDetection/dist/
+/HamaGraphCommunityDetection/build/
+/CommunityDetection/nbproject/private/
+/CommunityDetection/build/
+/CommunityDetection/dist/

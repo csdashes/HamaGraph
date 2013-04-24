@@ -15,3 +15,6 @@
 /CommunityDetection/nbproject/private/
 /CommunityDetection/build/
 /CommunityDetection/dist/
+*.crc
+
+CommunityDetection/output/part-00000

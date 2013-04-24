@@ -8,6 +8,7 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hama.HamaConfiguration;
@@ -46,19 +47,25 @@ public class CommunityDetection {
         GraphJob graphJob = new GraphJob(conf, CommunityDetection.class);
         graphJob.setJobName("Community Detection");
         graphJob.setVertexClass(GraphVertex.class);
+        
         graphJob.setInputPath(new Path(args[0]));
         graphJob.setOutputPath(new Path(args[1]));
+        
         graphJob.setVertexIDClass(Text.class);
-        graphJob.setVertexValueClass(Text.class);
+        graphJob.setVertexValueClass(MapWritable.class);
         graphJob.setEdgeValueClass(NullWritable.class);
+        
         graphJob.setInputFormat(TextInputFormat.class);
         graphJob.setInputKeyClass(LongWritable.class);
         graphJob.setInputValueClass(Text.class);
+        
         graphJob.setVertexInputReaderClass(GraphTextReader.class);
         graphJob.setPartitioner(HashPartitioner.class);
+        
         graphJob.setOutputFormat(TextOutputFormat.class);
         graphJob.setOutputKeyClass(Text.class);
-        graphJob.setOutputValueClass(Text.class);
+        graphJob.setOutputValueClass(MapWritable.class);
+        
         return graphJob;
     }
 }

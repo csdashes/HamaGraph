@@ -34,16 +34,18 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
     @Override
     public void compute(Iterator<MapWritable> messages) throws IOException {
-        if (this.getSuperstepCount() == 0) {
 
-            List<Edge<Text, NullWritable>> neighboors;
-            neighboors = this.getEdges();
+        List<Edge<Text, NullWritable>> neighboors;
+        neighboors = this.getEdges();
+        
+        MapWritable outMsg = new MapWritable();
+        
+        if (this.getSuperstepCount() == 0) {
             
             for (Edge<Text, NullWritable> edge : neighboors) {
                 Nr.add(edge.getDestinationVertexID().toString());
             }
             
-            MapWritable outMsg = new MapWritable();
             
             outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
 
@@ -55,13 +57,20 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             
             while (messages.hasNext()) {
                 ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Nr"));
-                List<String> neighboors = Arrays.asList(incoming.toStrings());
-                for(String neighboor : neighboors) {
+                List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
+                for(String neighboor : Nr_neighboors) {
                     if(!neighboor.equals(this.getVertexID().toString())) {
                         P.put(neighboor, new IntWritable(1));
                     }
                 }
                 System.out.println(P);
+            }
+            for (Edge<Text, NullWritable> edge : neighboors) {
+                String neighboor = edge.getDestinationVertexID().toString();
+                if(Integer.parseInt(neighboor) > Integer.parseInt(this.getVertexID().toString())) {
+                    outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
+                    this.sendMessage(edge.getDestinationVertexID(), outMsg);
+                }
             }
             voteToHalt();
         }

@@ -5,7 +5,6 @@
 package communitydetection;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,7 +30,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     Set<Text> Ni = new HashSet<Text>(); // The neighboors to be insterted
     Set<Text> Nd = new HashSet<Text>(); // The neighboors to be deleted
     // The propinquity value map
-    Map<Text, IntWritable> P = new HashMap<Text, IntWritable>();
+    Map<String, IntWritable> P = new HashMap<String, IntWritable>();
 
     @Override
     public void compute(Iterator<MapWritable> messages) throws IOException {
@@ -48,15 +47,21 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             
             outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
 
-            System.out.println("MyVertex: " + this.getVertexID());
             this.sendMessageToNeighbors(outMsg);
             voteToHalt();
 
-        } else {
-            System.out.println("MyVertex: " + this.getVertexID());
+        } else if(this.getSuperstepCount() == 1) {
+            System.out.print("MyVertex: " + this.getVertexID());
+            
             while (messages.hasNext()) {
                 ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Nr"));
-                System.out.println(Arrays.asList(incoming.toStrings()));
+                List<String> neighboors = Arrays.asList(incoming.toStrings());
+                for(String neighboor : neighboors) {
+                    if(!neighboor.equals(this.getVertexID().toString())) {
+                        P.put(neighboor, new IntWritable(1));
+                    }
+                }
+                System.out.println(P);
             }
             voteToHalt();
         }

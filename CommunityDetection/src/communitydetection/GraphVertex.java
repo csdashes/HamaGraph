@@ -5,6 +5,7 @@
 package communitydetection;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,20 +41,26 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         
         MapWritable outMsg = new MapWritable();
         
+        // for the first superstep, initialize the Nr Set by adding all the 
+        // neighboors of the current vertex and send the Set to all neighboors
         if (this.getSuperstepCount() == 0) {
             
             for (Edge<Text, NullWritable> edge : neighboors) {
                 Nr.add(edge.getDestinationVertexID().toString());
             }
             
+            System.out.println("neighboors of " + this.getVertexID() + " are: " + Nr);
             
             outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
 
             this.sendMessageToNeighbors(outMsg);
             voteToHalt();
-
-        } else if(this.getSuperstepCount() == 1) {
-            System.out.print("MyVertex: " + this.getVertexID());
+        } 
+        
+        // for the second superstep, read the messages and initialize the
+        // propinquity hash map. Then send the Nr list only to one vertex
+        // of each vertex pair.
+        else if(this.getSuperstepCount() == 1) {
             
             while (messages.hasNext()) {
                 ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Nr"));
@@ -63,16 +70,33 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                         P.put(neighboor, new IntWritable(1));
                     }
                 }
-                System.out.println(P);
             }
+            
+            System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
+            
             for (Edge<Text, NullWritable> edge : neighboors) {
                 String neighboor = edge.getDestinationVertexID().toString();
-                if(Integer.parseInt(neighboor) > Integer.parseInt(this.getVertexID().toString())) {
+                // commented until we fix the "directed graph" problem
+                //if(Integer.parseInt(neighboor) > Integer.parseInt(this.getVertexID().toString())) {
                     outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
                     this.sendMessage(edge.getDestinationVertexID(), outMsg);
-                }
+                //}
             }
             voteToHalt();
+        } 
+        
+        else if(this.getSuperstepCount() == 2) {
+            List<String> Nr_neighboors = new ArrayList<String>();
+            while (messages.hasNext()) {
+                ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Nr"));
+                Nr_neighboors = Arrays.asList(incoming.toStrings());
+                System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
+                
+                boolean Nr1IsLarger = Nr.size() > Nr_neighboors.size();
+                Set<String> intersection = new HashSet<String>(Nr1IsLarger ? Nr_neighboors : Nr);
+                intersection.retainAll(Nr1IsLarger ? Nr : Nr_neighboors);
+                System.out.println("Intersection of " + Nr + " and " + Nr_neighboors + ": " + intersection);
+            }
         }
     }
 }

@@ -5,7 +5,6 @@
 package communitydetection;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.hadoop.io.ArrayWritable;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -56,7 +54,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
         // for the first superstep, initialize the Nr Set by adding all the 
         // neighboors of the current vertex and send the Set to all neighboors
-        if (this.getSuperstepCount() == 0) {
+        else if (this.getSuperstepCount() == 2) {
             
             System.out.println("### SUPERSTEP 1 ###");
             for (Edge<Text, NullWritable> edge : neighboors) {
@@ -74,7 +72,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         // for the second superstep, read the messages and initialize the
         // propinquity hash map. Then send the Nr list only to one vertex
         // of each vertex pair.
-        else if(this.getSuperstepCount() == 1) {
+        else if(this.getSuperstepCount() == 3) {
             
             System.out.println("### SUPERSTEP 2 ###");
             
@@ -102,7 +100,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         } 
         // read the messages and find the intersection of the message list and
         // local Nr Set.
-        else if(this.getSuperstepCount() == 2) {
+        else if(this.getSuperstepCount() == 4) {
             
             System.out.println("### SUPERSTEP 3 ###");
             
@@ -139,7 +137,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
         
         // update the conjugate propinquity
-        else if(this.getSuperstepCount() == 3) {
+        else if(this.getSuperstepCount() == 5) {
             
             System.out.println("### SUPERSTEP 4 ###");
             

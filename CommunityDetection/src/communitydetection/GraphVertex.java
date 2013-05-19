@@ -41,6 +41,19 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         
         MapWritable outMsg = new MapWritable();
         
+        if (this.getSuperstepCount() == 0) {
+            outMsg = new MapWritable();
+            outMsg.put(new Text("init"), this.getVertexID());
+            this.sendMessageToNeighbors(outMsg);
+        } else if (this.getSuperstepCount() == 1) {
+            while (messages.hasNext()) {
+                Text id = (Text) messages.next().get(new Text("init"));
+                Edge<Text, NullWritable> e = new Edge<Text, NullWritable>(id, null);
+                if (!this.getEdges().contains(e)) {
+                    this.addEdge(e);
+                }
+            }
+        }
         // for the first superstep, initialize the Nr Set by adding all the 
         // neighboors of the current vertex and send the Set to all neighboors
         if (this.getSuperstepCount() == 0) {

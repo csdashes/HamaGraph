@@ -45,6 +45,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         // neighboors of the current vertex and send the Set to all neighboors
         if (this.getSuperstepCount() == 0) {
             
+            System.out.println("### SUPERSTEP 1 ###");
             for (Edge<Text, NullWritable> edge : neighboors) {
                 Nr.add(edge.getDestinationVertexID().toString());
             }
@@ -61,6 +62,8 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         // propinquity hash map. Then send the Nr list only to one vertex
         // of each vertex pair.
         else if(this.getSuperstepCount() == 1) {
+            
+            System.out.println("### SUPERSTEP 2 ###");
             
             while (messages.hasNext()) {
                 ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Nr"));
@@ -84,18 +87,54 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             }
             voteToHalt();
         } 
-        
+        // read the messages and find the intersection of the message list and
+        // local Nr Set.
         else if(this.getSuperstepCount() == 2) {
-            List<String> Nr_neighboors = new ArrayList<String>();
+            
+            System.out.println("### SUPERSTEP 3 ###");
+            
+            List<String> Nr_neighboors;
+            Set<String> intersection = null;
             while (messages.hasNext()) {
                 ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Nr"));
                 Nr_neighboors = Arrays.asList(incoming.toStrings());
                 System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
                 
                 boolean Nr1IsLarger = Nr.size() > Nr_neighboors.size();
-                Set<String> intersection = new HashSet<String>(Nr1IsLarger ? Nr_neighboors : Nr);
+                intersection = new HashSet<String>(Nr1IsLarger ? Nr_neighboors : Nr);
                 intersection.retainAll(Nr1IsLarger ? Nr : Nr_neighboors);
                 System.out.println("Intersection of " + Nr + " and " + Nr_neighboors + ": " + intersection);
+                System.out.println("");
+            }
+            
+            for(String vertex : intersection) {
+                System.out.print("destination vertex: " + vertex);
+                Set<String> messageList = new HashSet<String>(intersection);
+                System.out.print(", message list to send: " + messageList);
+                messageList.remove(vertex);
+                System.out.print(", after removal: " + messageList);
+                
+                if(!messageList.isEmpty()) {
+                    ArrayWritable aw = new ArrayWritable(messageList.toArray(new String[0]));
+                    outMsg = new MapWritable();
+                    outMsg.put(new Text("Intersection"), aw );
+                    this.sendMessage(new Text(vertex), outMsg);
+                    //System.out.println("message sent: " + Arrays.asList(outMsg.get(new Text("Intersection")).toStrings()));
+                }
+                System.out.println("");
+            }
+        }
+        
+        // update the conjugate propinquity
+        else if(this.getSuperstepCount() == 3) {
+            
+            System.out.println("### SUPERSTEP 4 ###");
+            
+            while (messages.hasNext()) {
+                ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Intersection"));
+                List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
+                System.out.println("");
+                System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
             }
         }
     }

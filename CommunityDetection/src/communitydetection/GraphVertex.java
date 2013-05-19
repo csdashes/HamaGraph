@@ -66,7 +66,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
 
             this.sendMessageToNeighbors(outMsg);
-            voteToHalt();
+            //voteToHalt();
         } 
         
         // for the second superstep, read the messages and initialize the
@@ -90,13 +90,12 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             
             for (Edge<Text, NullWritable> edge : neighboors) {
                 String neighboor = edge.getDestinationVertexID().toString();
-                // commented until we fix the "directed graph" problem
-                //if(Integer.parseInt(neighboor) > Integer.parseInt(this.getVertexID().toString())) {
+                if(Integer.parseInt(neighboor) > Integer.parseInt(this.getVertexID().toString())) {
                     outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
                     this.sendMessage(edge.getDestinationVertexID(), outMsg);
-                //}
+                }
             }
-            voteToHalt();
+            //voteToHalt();
         } 
         // read the messages and find the intersection of the message list and
         // local Nr Set.
@@ -117,22 +116,23 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 System.out.println("Intersection of " + Nr + " and " + Nr_neighboors + ": " + intersection);
                 System.out.println("");
             }
-            
-            for(String vertex : intersection) {
-                System.out.print("destination vertex: " + vertex);
-                Set<String> messageList = new HashSet<String>(intersection);
-                System.out.print(", message list to send: " + messageList);
-                messageList.remove(vertex);
-                System.out.print(", after removal: " + messageList);
-                
-                if(!messageList.isEmpty()) {
-                    ArrayWritable aw = new ArrayWritable(messageList.toArray(new String[0]));
-                    outMsg = new MapWritable();
-                    outMsg.put(new Text("Intersection"), aw );
-                    this.sendMessage(new Text(vertex), outMsg);
-                    //System.out.println("message sent: " + Arrays.asList(outMsg.get(new Text("Intersection")).toStrings()));
+            if(intersection != null) {
+                for(String vertex : intersection) {
+                    System.out.print("destination vertex: " + vertex);
+                    Set<String> messageList = new HashSet<String>(intersection);
+                    System.out.print(", message list to send: " + messageList);
+                    messageList.remove(vertex);
+                    System.out.print(", after removal: " + messageList);
+
+                    if(!messageList.isEmpty()) {
+                        ArrayWritable aw = new ArrayWritable(messageList.toArray(new String[0]));
+                        outMsg = new MapWritable();
+                        outMsg.put(new Text("Intersection"), aw );
+                        this.sendMessage(new Text(vertex), outMsg);
+                        //System.out.println("message sent: " + Arrays.asList(outMsg.get(new Text("Intersection")).toStrings()));
+                    }
+                    System.out.println("");
                 }
-                System.out.println("");
             }
         }
         
@@ -159,6 +159,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 }
             }
             System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
+            voteToHalt();
         }
     }
 }

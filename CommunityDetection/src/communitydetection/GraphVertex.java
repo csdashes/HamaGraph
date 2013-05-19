@@ -31,7 +31,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     Set<Text> Ni = new HashSet<Text>(); // The neighboors to be insterted
     Set<Text> Nd = new HashSet<Text>(); // The neighboors to be deleted
     // The propinquity value map
-    Map<String, IntWritable> P = new HashMap<String, IntWritable>();
+    Map<String, Integer> P = new HashMap<String, Integer>();
 
     @Override
     public void compute(Iterator<MapWritable> messages) throws IOException {
@@ -70,7 +70,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
                 for(String neighboor : Nr_neighboors) {
                     if(!neighboor.equals(this.getVertexID().toString())) {
-                        P.put(neighboor, new IntWritable(1));
+                        P.put(neighboor, 1);
                     }
                 }
             }
@@ -130,12 +130,24 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             
             System.out.println("### SUPERSTEP 4 ###");
             
+            System.out.println("BEFORE Hash for: " + this.getVertexID() + " -> " + P);
             while (messages.hasNext()) {
                 ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Intersection"));
                 List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
                 System.out.println("");
                 System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
+                for(String vertex : Nr_neighboors) {
+                    int propinquity = 0;
+                    propinquity = P.get(vertex);
+                    if(propinquity != 0) {
+                        P.put(vertex, P.remove(vertex)+1);
+                    } 
+                    else {
+                        P.put(vertex, 1);
+                    }
+                }
             }
+            System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
         }
     }
 }

@@ -157,7 +157,6 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 }
             }
             System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
-            voteToHalt();
         }
     }
 
@@ -176,53 +175,44 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             for (String vertex : Nr) {
                 MapWritable outMsg = new MapWritable();
 
-                outMsg.put(new Text("PU"), new ArrayWritable(Ni.toArray(new String[0])));
-                outMsg.put(new Text("+"), null);
+                outMsg.put(new Text("PU+"), new ArrayWritable(Ni.toArray(new String[0])));
                 this.sendMessage(new Text(vertex), outMsg);
 
                 outMsg = new MapWritable();
 
-                outMsg.put(new Text("PU"), new ArrayWritable(Nd.toArray(new String[0])));
-                outMsg.put(new Text("-"), null);
+                outMsg.put(new Text("PU-"), new ArrayWritable(Nd.toArray(new String[0])));
                 this.sendMessage(new Text(vertex), outMsg);
             }
             for (String vertex : Ni) {
                 MapWritable outMsg = new MapWritable();
 
-                outMsg.put(new Text("PU"), new ArrayWritable(Nr.toArray(new String[0])));
-                outMsg.put(new Text("+"), null);
+                outMsg.put(new Text("PU+"), new ArrayWritable(Nr.toArray(new String[0])));
                 this.sendMessage(new Text(vertex), outMsg);
 
                 outMsg = new MapWritable();
 
-                String[] array = Ni.toArray(new String[0]);
-                List<String> list = new ArrayList<String>(Arrays.asList(array));
-                list.removeAll(Arrays.asList(vertex));
-                array = list.toArray(array);
-
-                outMsg.put(new Text("PU"), new ArrayWritable(array));
-                outMsg.put(new Text("+"), null);
+                Set<String> tmp = new HashSet<String>(Ni);
+                tmp.remove(vertex);
+            
+                outMsg.put(new Text("PU+"), new ArrayWritable(tmp.toArray(new String[0])));
                 this.sendMessage(new Text(vertex), outMsg);
 
             }
             for (String vertex : Nd) {
                 MapWritable outMsg = new MapWritable();
 
-                outMsg.put(new Text("PU"), new ArrayWritable(Nr.toArray(new String[0])));
-                outMsg.put(new Text("-"), null);
+                outMsg.put(new Text("PU-"), new ArrayWritable(Nr.toArray(new String[0])));
                 this.sendMessage(new Text(vertex), outMsg);
 
                 outMsg = new MapWritable();
 
-                String[] array = Nd.toArray(new String[0]);
-                List<String> list = new ArrayList<String>(Arrays.asList(array));
-                list.removeAll(Arrays.asList(vertex));
-                array = list.toArray(array);
+                Set<String> tmp = new HashSet<String>(Nd);
+                tmp.remove(vertex);
 
-                outMsg.put(new Text("PU"), new ArrayWritable(array));
-                outMsg.put(new Text("-"), null);
+                outMsg.put(new Text("PU-"), new ArrayWritable(tmp.toArray(new String[0])));
                 this.sendMessage(new Text(vertex), outMsg);
             }
+            voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 2) {
         } else if (this.getSuperstepCount() % 4 == 3) {
         } else if (this.getSuperstepCount() % 4 == 0) {

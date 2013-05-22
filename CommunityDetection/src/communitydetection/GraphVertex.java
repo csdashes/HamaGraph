@@ -5,6 +5,7 @@
 package communitydetection;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -177,13 +178,54 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 }
             }
             for(String vertex : Nr) {
+                MapWritable outMsg = new MapWritable();
                 
+                outMsg.put(new Text("PU"), new ArrayWritable(Ni.toArray(new String[0])));
+                outMsg.put(new Text("+"), null);
+                this.sendMessage(new Text(vertex), outMsg);
+                
+                outMsg = new MapWritable();
+                
+                outMsg.put(new Text("PU"), new ArrayWritable(Nd.toArray(new String[0])));
+                outMsg.put(new Text("-"), null);
+                this.sendMessage(new Text(vertex), outMsg);
             }
             for(String vertex : Ni) {
+                MapWritable outMsg = new MapWritable();
+
+                outMsg.put(new Text("PU"), new ArrayWritable(Nr.toArray(new String[0])));
+                outMsg.put(new Text("+"), null);
+                this.sendMessage(new Text(vertex), outMsg);
+
+                outMsg = new MapWritable();
                 
+                String[] array = Ni.toArray(new String[0]);
+                List<String> list = new ArrayList<String>(Arrays.asList(array));
+                list.removeAll(Arrays.asList(vertex));
+                array = list.toArray(array);
+
+                outMsg.put(new Text("PU"), new ArrayWritable(array));
+                outMsg.put(new Text("+"), null);
+                this.sendMessage(new Text(vertex), outMsg);
+
             }
             for(String vertex : Nd) {
-                
+                MapWritable outMsg = new MapWritable();
+
+                outMsg.put(new Text("PU"), new ArrayWritable(Nr.toArray(new String[0])));
+                outMsg.put(new Text("-"), null);
+                this.sendMessage(new Text(vertex), outMsg);
+
+                outMsg = new MapWritable();
+
+                String[] array = Nd.toArray(new String[0]);
+                List<String> list = new ArrayList<String>(Arrays.asList(array));
+                list.removeAll(Arrays.asList(vertex));
+                array = list.toArray(array);
+
+                outMsg.put(new Text("PU"), new ArrayWritable(array));
+                outMsg.put(new Text("-"), null);
+                this.sendMessage(new Text(vertex), outMsg);
             }
         }
         

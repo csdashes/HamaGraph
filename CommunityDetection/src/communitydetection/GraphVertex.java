@@ -161,36 +161,32 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
     }
 
-    @Override
-    public void compute(Iterator<MapWritable> messages) throws IOException {
-
-        initialize(messages);
-        
-        if(this.getSuperstepCount() == 6) {
-            for(String vertex : P.keySet()) {
+    private void incremental(Iterator<MapWritable> messages) throws IOException {
+        if (this.getSuperstepCount() % 4 == 1) {
+            for (String vertex : P.keySet()) {
                 int propinquityValue = P.get(vertex);
-                if(propinquityValue <= a && Nr.contains(vertex)) {
+                if (propinquityValue <= a && Nr.contains(vertex)) {
                     Nd.add(vertex);
                     Nr.remove(vertex);
                 }
-                if(propinquityValue >=b && !Nr.contains(vertex)) {
+                if (propinquityValue >= b && !Nr.contains(vertex)) {
                     Ni.add(vertex);
                 }
             }
-            for(String vertex : Nr) {
+            for (String vertex : Nr) {
                 MapWritable outMsg = new MapWritable();
-                
+
                 outMsg.put(new Text("PU"), new ArrayWritable(Ni.toArray(new String[0])));
                 outMsg.put(new Text("+"), null);
                 this.sendMessage(new Text(vertex), outMsg);
-                
+
                 outMsg = new MapWritable();
-                
+
                 outMsg.put(new Text("PU"), new ArrayWritable(Nd.toArray(new String[0])));
                 outMsg.put(new Text("-"), null);
                 this.sendMessage(new Text(vertex), outMsg);
             }
-            for(String vertex : Ni) {
+            for (String vertex : Ni) {
                 MapWritable outMsg = new MapWritable();
 
                 outMsg.put(new Text("PU"), new ArrayWritable(Nr.toArray(new String[0])));
@@ -198,7 +194,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 this.sendMessage(new Text(vertex), outMsg);
 
                 outMsg = new MapWritable();
-                
+
                 String[] array = Ni.toArray(new String[0]);
                 List<String> list = new ArrayList<String>(Arrays.asList(array));
                 list.removeAll(Arrays.asList(vertex));
@@ -209,7 +205,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 this.sendMessage(new Text(vertex), outMsg);
 
             }
-            for(String vertex : Nd) {
+            for (String vertex : Nd) {
                 MapWritable outMsg = new MapWritable();
 
                 outMsg.put(new Text("PU"), new ArrayWritable(Nr.toArray(new String[0])));
@@ -227,7 +223,21 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 outMsg.put(new Text("-"), null);
                 this.sendMessage(new Text(vertex), outMsg);
             }
+        } else if (this.getSuperstepCount() % 4 == 2) {
+        } else if (this.getSuperstepCount() % 4 == 3) {
+        } else if (this.getSuperstepCount() % 4 == 0) {
         }
-        
     }
+    
+    @Override
+    public void compute(Iterator<MapWritable> messages) throws IOException {
+
+        if (this.getSuperstepCount() < 6) {
+            initialize(messages);
+        } else {
+            incremental(messages);
+        }
+    }
+
+
 }

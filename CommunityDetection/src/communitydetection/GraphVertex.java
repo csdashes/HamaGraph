@@ -33,10 +33,10 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     Map<String, Integer> P = new HashMap<String, Integer>();
     
     //cutting thresshold
-    int a;
+    int a = 1;
     
     //emerging value
-    int b;
+    int b = 3;
     
     private void initialize(Iterator<MapWritable> messages) throws IOException {
         List<Edge<Text, NullWritable>> neighboors;
@@ -172,6 +172,11 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     Ni.add(vertex);
                 }
             }
+            System.out.println("For vertex " + this.getVertexID());
+            System.out.println("Nr set: " + Nr);
+            System.out.println("Ni set: " + Ni);
+            System.out.println("Nd set: " + Nd);
+            System.out.println("");
             for (String vertex : Nr) {
                 MapWritable outMsg = new MapWritable();
 

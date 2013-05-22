@@ -24,6 +24,9 @@ public class CommunityDetection {
 
     /**
      * @param args the command line arguments
+     * @throws IOException
+     * @throws InterruptedException
+     * @throws ClassNotFoundException  
      */
     public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
         if (args.length != 2) {
@@ -47,6 +50,7 @@ public class CommunityDetection {
         GraphJob graphJob = new GraphJob(conf, CommunityDetection.class);
         graphJob.setJobName("Community Detection");
         graphJob.setVertexClass(GraphVertex.class);
+        graphJob.setJar("dist/CommunityDetection.jar");
         
         graphJob.setInputPath(new Path(args[0]));
         graphJob.setOutputPath(new Path(args[1]));

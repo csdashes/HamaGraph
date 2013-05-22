@@ -5,11 +5,9 @@
 package communitydetection;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,7 +36,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     //emerging value
     int b = 3;
     
-    private void initialize(Iterator<MapWritable> messages) throws IOException {
+    private void initialize(Iterable<MapWritable> messages) throws IOException {
         List<Edge<Text, NullWritable>> neighboors;
         neighboors = this.getEdges();
 
@@ -49,13 +47,15 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             outMsg.put(new Text("init"), this.getVertexID());
             this.sendMessageToNeighbors(outMsg);
         } else if (this.getSuperstepCount() == 1) {
-            while (messages.hasNext()) {
-                Text id = (Text) messages.next().get(new Text("init"));
+            
+            for (MapWritable message : messages) {
+                Text id = (Text) message.get(new Text("init"));
                 Edge<Text, NullWritable> e = new Edge<Text, NullWritable>(id, null);
                 if (!this.getEdges().contains(e)) {
                     this.addEdge(e);
                 }
             }
+            
         } // for the first superstep, initialize the Nr Set by adding all the 
         // neighboors of the current vertex and send the Set to all neighboors
         else if (this.getSuperstepCount() == 2) {
@@ -78,8 +78,8 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
             System.out.println("### SUPERSTEP 2 ###");
 
-            while (messages.hasNext()) {
-                ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Nr"));
+            for (MapWritable message : messages) {
+                ArrayWritable incoming = (ArrayWritable) message.get(new Text("Nr"));
                 List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
                 for (String neighboor : Nr_neighboors) {
                     if (!neighboor.equals(this.getVertexID().toString())) {
@@ -87,7 +87,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     }
                 }
             }
-
+            
             System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
 
             for (Edge<Text, NullWritable> edge : neighboors) {
@@ -106,8 +106,8 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
             List<String> Nr_neighboors;
             Set<String> intersection = null;
-            while (messages.hasNext()) {
-                ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Nr"));
+            for (MapWritable message : messages) {
+                ArrayWritable incoming = (ArrayWritable) message.get(new Text("Nr"));
                 Nr_neighboors = Arrays.asList(incoming.toStrings());
                 System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
 
@@ -116,6 +116,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 intersection.retainAll(Nr1IsLarger ? Nr : Nr_neighboors);
                 System.out.println("Intersection of " + Nr + " and " + Nr_neighboors + ": " + intersection);
                 System.out.println("");
+
             }
             if (intersection != null) {
                 for (String vertex : intersection) {
@@ -141,8 +142,8 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             System.out.println("### SUPERSTEP 4 ###");
 
             System.out.println("BEFORE Hash for: " + this.getVertexID() + " -> " + P);
-            while (messages.hasNext()) {
-                ArrayWritable incoming = (ArrayWritable) messages.next().get(new Text("Intersection"));
+            for (MapWritable message : messages) {
+                ArrayWritable incoming = (ArrayWritable) message.get(new Text("Intersection"));
                 List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
                 System.out.println("");
                 System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
@@ -160,7 +161,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
     }
 
-    private void incremental(Iterator<MapWritable> messages) throws IOException {
+    private void incremental(Iterable<MapWritable> messages) throws IOException {
         if (this.getSuperstepCount() % 4 == 1) {
             for (String vertex : P.keySet()) {
                 int propinquityValue = P.get(vertex);
@@ -225,7 +226,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     }
     
     @Override
-    public void compute(Iterator<MapWritable> messages) throws IOException {
+    public void compute(Iterable<MapWritable> messages) throws IOException {
 
         if (this.getSuperstepCount() < 6) {
             initialize(messages);
@@ -233,6 +234,4 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             incremental(messages);
         }
     }
-
-
 }

@@ -229,7 +229,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
         if (this.getSuperstepCount() < 6) {
             initialize(messages);
-        } else {
+        } else if (this.getSuperstepCount() > 8) {
             incremental(messages);
         }
     }

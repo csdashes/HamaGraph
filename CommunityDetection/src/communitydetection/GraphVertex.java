@@ -421,6 +421,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 this.sendMessage(new Text(vertex), outMsg);
             }
         } else if (this.getSuperstepCount() % 4 == 2) {
+            System.out.println("### ANGLE PROPINQUITY UPDATE ###");
             System.out.println("Hash for: " + this.getVertexID() + " -> " + P + "(before)");
             for (MapWritable message : messages) {
                 if (message.containsKey(new Text("PU+"))) {
@@ -473,8 +474,8 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             System.out.println("");
         } else if (this.getSuperstepCount() % 4 == 3) {
             for (MapWritable message : messages) {
-                ArrayWritable messageValue = (ArrayWritable) message.get(new Text("sender"));
-                String senderVertexId = Arrays.asList(messageValue.toStrings()).get(0);  
+                Text messageValue = (Text) message.get(new Text("Sender"));
+                String senderVertexId = messageValue.toString();
                 ArrayWritable messageValueNr = (ArrayWritable) message.get(new Text("DN NR"));
                 ArrayWritable messageValueNi = (ArrayWritable) message.get(new Text("DN NI"));
                 ArrayWritable messageValueNd = (ArrayWritable) message.get(new Text("DN ND"));
@@ -553,8 +554,9 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     }
                 }
             }
-            voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 0) {
+            System.out.println("### CONJUGATE PROPINQUITY UPDATE ###");
+            System.out.println("Hash for: " + this.getVertexID() + " -> " + P + "(before)");
             for (MapWritable message : messages) {
                 if (message.containsKey(new Text("UP+"))) {
                     ArrayWritable messageValue = (ArrayWritable) message.get(new Text("UP+"));
@@ -573,6 +575,10 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             } else {
                 Nr = Sets.union(Nr, Nd);
             }
+            
+            System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
+            System.out.println("");
+            voteToHalt();
         }
     }
     

@@ -485,13 +485,72 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     Set<String> RIList = calculateRI(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
                             new HashSet<String>(Arrays.asList(messageValueNi.toStrings())));
                     //calculate RD
-                    Set<String> RDList = calculateRD(new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
+                    Set<String> RDList = calculateRD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                            new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
+                    
+                    for (String vertex : RRList) {
+                        MapWritable outMsg = new MapWritable();
+
+                        outMsg.put(new Text("UP+"), new ArrayWritable(RIList.toArray(new String[0])));
+                        this.sendMessage(new Text(vertex), outMsg);
+
+                        outMsg = new MapWritable();
+
+                        outMsg.put(new Text("UP-"), new ArrayWritable(RDList.toArray(new String[0])));
+                        this.sendMessage(new Text(vertex), outMsg);
+                    }
+                    for (String vertex : RIList) {
+                        MapWritable outMsg = new MapWritable();
+
+                        outMsg.put(new Text("UP+"), new ArrayWritable(RRList.toArray(new String[0])));
+                        this.sendMessage(new Text(vertex), outMsg);
+
+                        outMsg = new MapWritable();
+
+                        Set<String> tmp = new HashSet<String>(RIList);
+                        tmp.remove(vertex);
+                        outMsg.put(new Text("UP-"), new ArrayWritable(tmp.toArray(new String[0])));
+                        this.sendMessage(new Text(vertex), outMsg);
+                    }
+                    for (String vertex : RDList) {
+                        MapWritable outMsg = new MapWritable();
+
+                        outMsg.put(new Text("UP-"), new ArrayWritable(RRList.toArray(new String[0])));
+                        this.sendMessage(new Text(vertex), outMsg);
+
+                        outMsg = new MapWritable();
+
+                        Set<String> tmp = new HashSet<String>(RDList);
+                        tmp.remove(vertex);
+                        outMsg.put(new Text("UP-"), new ArrayWritable(tmp.toArray(new String[0])));
+                        this.sendMessage(new Text(vertex), outMsg);
+                    }
                 }
                 if(Ni.contains(senderVertexId)){
                     //calculate II
+                    Set<String> RIList = calculateRI(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                            new HashSet<String>(Arrays.asList(messageValueNi.toStrings())));
+                    for (String vertex : RIList) {
+                        MapWritable outMsg = new MapWritable();
+
+                        Set<String> tmp = new HashSet<String>(RIList);
+                        tmp.remove(vertex);
+                        outMsg.put(new Text("UP+"), new ArrayWritable(tmp.toArray(new String[0])));
+                        this.sendMessage(new Text(vertex), outMsg);
+                    }
                 }
                 if(Nd.contains(senderVertexId)){
                     //calculate DD
+                    Set<String> RDList = calculateRD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                            new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
+                    for (String vertex : RDList) {
+                        MapWritable outMsg = new MapWritable();
+
+                        Set<String> tmp = new HashSet<String>(RDList);
+                        tmp.remove(vertex);
+                        outMsg.put(new Text("UP-"), new ArrayWritable(tmp.toArray(new String[0])));
+                        this.sendMessage(new Text(vertex), outMsg);
+                    }
                 }
             }
             voteToHalt();

@@ -53,7 +53,6 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     }
     
     private Set<String> calculateRI(Set<String> nr, Set<String> ni) {
-        // (N1R ⊓N2I)+(N1I ⊓N2R) + ( N 1I ⊓ N 2I )
         Set<String> t1;
         if (Nr.size() > ni.size()) {
             t1 = Sets.intersection(ni, Nr);
@@ -82,6 +81,43 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             u1 = Sets.union(t1, t2);
         }
         
+        if (u1.size() > t3.size()) {
+            return Sets.union(t3, u1);
+        }
+
+        return Sets.union(u1, t3);
+    }
+    
+    private Set<String> calculateRD(Set<String> nr, Set<String> nd) {
+        
+        Set<String> t1;
+        if (Nr.size() > nd.size()) {
+            t1 = Sets.intersection(nd, Nr);
+        } else {
+            t1 = Sets.intersection(Nr, nd);
+        }
+
+        Set<String> t2;
+        if (Nd.size() > nr.size()) {
+            t2 = Sets.intersection(nr, Nd);
+        } else {
+            t2 = Sets.intersection(Nd, nr);
+        }
+
+        Set<String> t3;
+        if (Nd.size() > nd.size()) {
+            t3 = Sets.intersection(nd, Nd);
+        } else {
+            t3 = Sets.intersection(Nd, nd);
+        }
+
+        Set<String> u1;
+        if (t1.size() > t2.size()) {
+            u1 = Sets.union(t2, t1);
+        } else {
+            u1 = Sets.union(t1, t2);
+        }
+
         if (u1.size() > t3.size()) {
             return Sets.union(t3, u1);
         }

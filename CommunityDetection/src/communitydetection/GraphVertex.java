@@ -197,6 +197,33 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
         /* ==== Initialize conjugate propinquity end ==== */
     }
+    
+    private void updatePropinquity(List<String> vertexes,PropinquityUpdateOperation operation) {
+        switch(operation) {
+            case INCREASE :
+                for (String vertex : vertexes) {
+                    int propinquity = 0;
+                    propinquity = P.get(vertex);
+                    if (propinquity != 0) {
+                        P.put(vertex, P.remove(vertex) + 1);
+                    } else {
+                        P.put(vertex, 1);
+                    }
+                }
+                break;
+            case DECREASE :
+                for (String vertex : vertexes) {
+                    int propinquity = 0;
+                    propinquity = P.get(vertex);
+                    if (propinquity != 0) {
+                        P.put(vertex, P.remove(vertex) - 1);
+                    } else {
+                        P.put(vertex, 1);
+                    }
+                }
+                break;
+        }
+    }
 
     /* This method is responsible for the incremental update
      * @param messages The messages received in each superstep.
@@ -258,8 +285,13 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 outMsg.put(new Text("PU-"), new ArrayWritable(tmp.toArray(new String[0])));
                 this.sendMessage(new Text(vertex), outMsg);
             }
-            voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 2) {
+            for (MapWritable message : messages) {
+                if(message.containsKey("PU+")) {
+                    ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU+"));
+                }
+            }
+            voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 3) {
         } else if (this.getSuperstepCount() % 4 == 0) {
         }

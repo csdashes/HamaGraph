@@ -294,11 +294,20 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 this.sendMessage(new Text(vertex), outMsg);
             }
         } else if (this.getSuperstepCount() % 4 == 2) {
+            System.out.println("Hash for: " + this.getVertexID() + " -> " + P + "(before)");
             for (MapWritable message : messages) {
                 if (message.containsKey(new Text("PU+"))) {
                     ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU+"));
+                    updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                            PropinquityUpdateOperation.INCREASE);
+                }
+                else if(message.containsKey(new Text("PU-"))) {
+                    ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU-"));
+                    updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                            PropinquityUpdateOperation.DECREASE);
                 }
             }
+
             
             for (String vertex: Nr) {
                 if (h(vertex) > h(this.getVertexID())) {
@@ -330,6 +339,9 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     this.sendMessage(new Text(vertex), outMsg);
                 }
             }
+
+
+            System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
 
             voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 3) {

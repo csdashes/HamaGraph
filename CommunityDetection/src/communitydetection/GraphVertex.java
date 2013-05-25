@@ -52,6 +52,30 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         return Sets.intersection(Nr, nr);
     }
     
+    private Set<String> calculateII(Set<String> nr, Set<String> ni) {
+        //( N 1R + N 1I ) ⊓ ( N 2R + N 2I )
+        
+        Set<String> t1;
+        if (Nr.size() > Ni.size()) {
+            t1 = Sets.union(Ni, Nr);
+        } else {
+            t1 = Sets.union(Nr, Ni);
+        }
+
+        Set<String> t2;
+        if (ni.size() > nr.size()) {
+            t2 = Sets.union(nr, ni);
+        } else {
+            t2 = Sets.union(ni, nr);
+        }
+
+        if (t1.size() > t2.size()) {
+            return Sets.intersection(t2, t1);
+        } 
+        
+        return Sets.intersection(t1, t2);
+    }
+    
     private Set<String> calculateRI(Set<String> nr, Set<String> ni) {
         Set<String> t1;
         if (Nr.size() > ni.size()) {

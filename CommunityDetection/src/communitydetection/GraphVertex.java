@@ -313,6 +313,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 if (h(vertex) > h(this.getVertexID())) {
                     MapWritable outMsg = new MapWritable();
                     
+                    outMsg.put(new Text("Sender"), this.getVertexID());
                     outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
                     outMsg.put(new Text("DN NI"), new ArrayWritable(Ni.toArray(new String[0])));
                     outMsg.put(new Text("DN ND"), new ArrayWritable(Nd.toArray(new String[0])));
@@ -324,6 +325,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 if (h(vertex) > h(this.getVertexID())) {
                     MapWritable outMsg = new MapWritable();
 
+                    outMsg.put(new Text("Sender"), this.getVertexID());
                     outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
                     outMsg.put(new Text("DN NI"), new ArrayWritable(Ni.toArray(new String[0])));
                     this.sendMessage(new Text(vertex), outMsg);
@@ -334,6 +336,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 if (h(vertex) > h(this.getVertexID())) {
                     MapWritable outMsg = new MapWritable();
 
+                    outMsg.put(new Text("Sender"), this.getVertexID());
                     outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
                     outMsg.put(new Text("DN ND"), new ArrayWritable(Nd.toArray(new String[0])));
                     this.sendMessage(new Text(vertex), outMsg);

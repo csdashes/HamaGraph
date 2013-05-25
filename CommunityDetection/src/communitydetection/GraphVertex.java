@@ -44,12 +44,22 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         return h(a.toString());
     }
     
+    /* This method is responsible to initialize the propinquity
+     * hash map in each vertex. Consists of 2 steps, the angle
+     * and the conjugate propinquity update.
+     * @param messages The messages received in each superstep.
+     */
     private void initialize(Iterable<MapWritable> messages) throws IOException {
         List<Edge<Text, NullWritable>> neighboors;
         neighboors = this.getEdges();
 
         MapWritable outMsg = new MapWritable();
 
+        /* Create a 2-way direction between vertexes. From each
+         * vertex send a message with the vertex id to all of
+         * the neighboors. When a vertex receives the message it
+         * creates a new edge between the sender and the receiver
+         */
         if (this.getSuperstepCount() == 0) {
             outMsg = new MapWritable();
             outMsg.put(new Text("init"), this.getVertexID());
@@ -64,8 +74,17 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 }
             }
             
-        } // for the first superstep, initialize the Nr Set by adding all the 
-        // neighboors of the current vertex and send the Set to all neighboors
+        } 
+        
+        /* ==== Initialize angle propinquity start ====
+         * The goal is to increase the propinquity between 2 
+         * vertexes according to the amoung of the common neighboors
+         * between them.
+         * Initialize the Nr Set by adding all the neighboors in
+         * it and send the Set to all neighboors so they know
+         * that for the vertexes of the Set, the sender vertex is
+         * a common neighboor.
+         */
         else if (this.getSuperstepCount() == 2) {
 
             System.out.println("### SUPERSTEP 1 ###");
@@ -78,10 +97,12 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
 
             this.sendMessageToNeighbors(outMsg);
-            //voteToHalt();
-        } // for the second superstep, read the messages and initialize the
-        // propinquity hash map. Then send the Nr list only to one vertex
-        // of each vertex pair.
+            
+        } 
+        
+        /* Initialize the propinquity hash map for the vertexes of the
+         * received list.
+         */
         else if (this.getSuperstepCount() == 3) {
 
             System.out.println("### SUPERSTEP 2 ###");
@@ -98,6 +119,15 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             
             System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
 
+            /* ==== Initialize angle propinquity end ==== */
+            /* ==== Initialize conjugate propinquity start ==== 
+             * The goal is to increase the propinquity of a vertex pair
+             * according to the amount of edges between the common neighboors
+             * of this pair.
+             * Send the neighboors list of the vertex to all his neighboors.
+             * To achive only one way communication, a function that compairs
+             * the vertex ids is being used.
+             */
             for (Edge<Text, NullWritable> edge : neighboors) {
                 String neighboor = edge.getDestinationVertexID().toString();
                 if (Integer.parseInt(neighboor) > Integer.parseInt(this.getVertexID().toString())) {
@@ -105,9 +135,14 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     this.sendMessage(edge.getDestinationVertexID(), outMsg);
                 }
             }
-            //voteToHalt();
-        } // read the messages and find the intersection of the message list and
-        // local Nr Set.
+        } 
+        
+        /* Find the intersection of the received vertex list and the
+         * neighboor list of the vertex so as to create a list of the
+         * common neighboors between the sender and the receiver vertex.
+         * Send the intersection list to every element of this list so
+         * as to increase the propinquity.
+         */
         else if (this.getSuperstepCount() == 4) {
 
             System.out.println("### SUPERSTEP 3 ###");
@@ -144,7 +179,8 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     System.out.println("");
                 }
             }
-        } // update the conjugate propinquity
+        } 
+        // update the conjugate propinquity
         else if (this.getSuperstepCount() == 5) {
 
             System.out.println("### SUPERSTEP 4 ###");
@@ -167,8 +203,39 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             }
             System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
         }
+        /* ==== Initialize conjugate propinquity end ==== */
+    }
+    
+    private void updatePropinquity(List<String> vertexes,PropinquityUpdateOperation operation) {
+        switch(operation) {
+            case INCREASE :
+                for (String vertex : vertexes) {
+                    int propinquity = 0;
+                    propinquity = P.get(vertex);
+                    if (propinquity != 0) {
+                        P.put(vertex, P.remove(vertex) + 1);
+                    } else {
+                        P.put(vertex, 1);
+                    }
+                }
+                break;
+            case DECREASE :
+                for (String vertex : vertexes) {
+                    int propinquity = 0;
+                    propinquity = P.get(vertex);
+                    if (propinquity != 0) {
+                        P.put(vertex, P.remove(vertex) - 1);
+                    } else {
+                        P.put(vertex, 1);
+                    }
+                }
+                break;
+        }
     }
 
+    /* This method is responsible for the incremental update
+     * @param messages The messages received in each superstep.
+     */
     private void incremental(Iterable<MapWritable> messages) throws IOException {
         if (this.getSuperstepCount() % 4 == 1) {
             for (String vertex : P.keySet()) {
@@ -226,8 +293,12 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 outMsg.put(new Text("PU-"), new ArrayWritable(tmp.toArray(new String[0])));
                 this.sendMessage(new Text(vertex), outMsg);
             }
-            voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 2) {
+            for (MapWritable message : messages) {
+                if (message.containsKey(new Text("PU+"))) {
+                    ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU+"));
+                }
+            }
             
             for (String vertex: Nr) {
                 if (h(vertex) > h(this.getVertexID())) {
@@ -259,6 +330,8 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     this.sendMessage(new Text(vertex), outMsg);
                 }
             }
+
+            voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 3) {
         } else if (this.getSuperstepCount() % 4 == 0) {
         }

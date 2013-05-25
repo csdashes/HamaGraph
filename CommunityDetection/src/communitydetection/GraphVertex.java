@@ -36,6 +36,14 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     //emerging value
     int b = 3;
     
+    private int h(String a) {
+        return Integer.valueOf(a);
+    }
+
+    private int h(Text a) {
+        return h(a.toString());
+    }
+    
     private void initialize(Iterable<MapWritable> messages) throws IOException {
         List<Edge<Text, NullWritable>> neighboors;
         neighboors = this.getEdges();
@@ -220,6 +228,37 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             }
             voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 2) {
+            
+            for (String vertex: Nr) {
+                if (h(vertex) > h(this.getVertexID())) {
+                    MapWritable outMsg = new MapWritable();
+                    
+                    outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
+                    outMsg.put(new Text("DN NI"), new ArrayWritable(Ni.toArray(new String[0])));
+                    outMsg.put(new Text("DN ND"), new ArrayWritable(Nd.toArray(new String[0])));
+                    this.sendMessage(new Text(vertex), outMsg);
+                }
+            }
+            
+            for (String vertex : Ni) {
+                if (h(vertex) > h(this.getVertexID())) {
+                    MapWritable outMsg = new MapWritable();
+
+                    outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
+                    outMsg.put(new Text("DN NI"), new ArrayWritable(Ni.toArray(new String[0])));
+                    this.sendMessage(new Text(vertex), outMsg);
+                }
+            }
+            
+            for (String vertex : Nd) {
+                if (h(vertex) > h(this.getVertexID())) {
+                    MapWritable outMsg = new MapWritable();
+
+                    outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
+                    outMsg.put(new Text("DN ND"), new ArrayWritable(Nd.toArray(new String[0])));
+                    this.sendMessage(new Text(vertex), outMsg);
+                }
+            }
         } else if (this.getSuperstepCount() % 4 == 3) {
         } else if (this.getSuperstepCount() % 4 == 0) {
         }

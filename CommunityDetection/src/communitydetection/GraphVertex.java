@@ -496,6 +496,24 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             }
             voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 0) {
+            for (MapWritable message : messages) {
+                if (message.containsKey(new Text("UP+"))) {
+                    ArrayWritable messageValue = (ArrayWritable) message.get(new Text("UP+"));
+                    updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                            PropinquityUpdateOperation.INCREASE);
+                } else if (message.containsKey(new Text("UP-"))) {
+                    ArrayWritable messageValue = (ArrayWritable) message.get(new Text("UP-"));
+                    updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                            PropinquityUpdateOperation.DECREASE);
+                }
+            }
+
+            // NR ←NR + ND
+            if (Nr.size() > Nd.size()) {
+                Nr = Sets.union(Nd, Nr);
+            } else {
+                Nr = Sets.union(Nr, Nd);
+            }
         }
     }
     

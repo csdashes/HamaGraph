@@ -4,6 +4,7 @@
  */
 package communitydetection;
 
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -42,6 +43,50 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
     private int h(Text a) {
         return h(a.toString());
+    }
+    
+    private Set<String> calculateRR(Set<String> nr) {
+        if (Nr.size() > nr.size()) {
+            return Sets.intersection(nr, Nr);
+        }
+        return Sets.intersection(Nr, nr);
+    }
+    
+    private Set<String> calculateRI(Set<String> nr, Set<String> ni) {
+        // (N1R ⊓N2I)+(N1I ⊓N2R) + ( N 1I ⊓ N 2I )
+        Set<String> t1;
+        if (Nr.size() > ni.size()) {
+            t1 = Sets.intersection(ni, Nr);
+        } else {
+            t1 = Sets.intersection(Nr, ni);
+        }
+
+        Set<String> t2;
+        if (Ni.size() > nr.size()) {
+            t2 = Sets.intersection(nr, Ni);
+        } else {
+            t2 = Sets.intersection(Ni, nr);
+        }
+
+        Set<String> t3;
+        if (Ni.size() > ni.size()) {
+            t3 = Sets.intersection(ni, Ni);
+        } else {
+            t3 = Sets.intersection(Ni, ni);
+        }
+        
+        Set<String> u1;
+        if (t1.size() > t2.size()) {
+            u1 = Sets.union(t2, t1);
+        } else {
+            u1 = Sets.union(t1, t2);
+        }
+        
+        if (u1.size() > t3.size()) {
+            return Sets.union(t3, u1);
+        }
+
+        return Sets.union(u1, t3);
     }
     
     /* This method is responsible to initialize the propinquity

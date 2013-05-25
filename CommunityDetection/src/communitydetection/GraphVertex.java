@@ -475,10 +475,17 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             for (MapWritable message : messages) {
                 ArrayWritable messageValue = (ArrayWritable) message.get(new Text("sender"));
                 String senderVertexId = Arrays.asList(messageValue.toStrings()).get(0);  
+                ArrayWritable messageValueNr = (ArrayWritable) message.get(new Text("DN NR"));
+                ArrayWritable messageValueNi = (ArrayWritable) message.get(new Text("DN NI"));
+                ArrayWritable messageValueNd = (ArrayWritable) message.get(new Text("DN ND"));
                 if(Nr.contains(senderVertexId)){
                     //calculate RR
+                    Set<String> RRList = calculateRR(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())));
                     //calculate RI
+                    Set<String> RIList = calculateRI(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                            new HashSet<String>(Arrays.asList(messageValueNi.toStrings())));
                     //calculate RD
+                    Set<String> RDList = calculateRD(new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
                 }
                 if(Ni.contains(senderVertexId)){
                     //calculate II

@@ -387,12 +387,25 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     this.sendMessage(new Text(vertex), outMsg);
                 }
             }
-
-
             System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
-
-            voteToHalt();
+            System.out.println("");
         } else if (this.getSuperstepCount() % 4 == 3) {
+            for (MapWritable message : messages) {
+                ArrayWritable messageValue = (ArrayWritable) message.get(new Text("sender"));
+                String senderVertexId = Arrays.asList(messageValue.toStrings()).get(0);  
+                if(Nr.contains(senderVertexId)){
+                    //calculate RR
+                    //calculate RI
+                    //calculate RD
+                }
+                if(Ni.contains(senderVertexId)){
+                    //calculate II
+                }
+                if(Nd.contains(senderVertexId)){
+                    //calculate DD
+                }
+            }
+            voteToHalt();
         } else if (this.getSuperstepCount() % 4 == 0) {
         }
     }

@@ -6,6 +6,7 @@ package communitydetection;
 
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,7 +36,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     int a = 1;
     
     //emerging value
-    int b = 3;
+    int b = 2;
     
     private int h(String a) {
         return Integer.valueOf(a);
@@ -214,7 +215,6 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
          */
         else if (this.getSuperstepCount() == 2) {
 
-            System.out.println("### SUPERSTEP 1 ###");
             for (Edge<Text, NullWritable> edge : neighboors) {
                 Nr.add(edge.getDestinationVertexID().toString());
             }
@@ -232,19 +232,25 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
          */
         else if (this.getSuperstepCount() == 3) {
 
-            System.out.println("### SUPERSTEP 2 ###");
+            if(this.getVertexID().equals(new Text("1"))) {
+                System.out.println("\n### SUPERSTEP 2 ### Initialize Angle Propinquity");
+            }
 
             for (MapWritable message : messages) {
                 ArrayWritable incoming = (ArrayWritable) message.get(new Text("Nr"));
-                List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
-                for (String neighboor : Nr_neighboors) {
-                    if (!neighboor.equals(this.getVertexID().toString())) {
-                        P.put(neighboor, 1);
-                    }
-                }
+                List<String> commonNeighboors = Arrays.asList(incoming.toStrings());
+                Set commonNeighboorsSet = new HashSet<String>(commonNeighboors);
+                commonNeighboorsSet.remove(this.getVertexID().toString());
+                updatePropinquity(commonNeighboorsSet,
+                        PropinquityUpdateOperation.INCREASE);
+//                for (String neighboor : Nr_neighboors) {
+//                    if (!neighboor.equals(this.getVertexID().toString())) {
+//                        P.put(neighboor, 1);
+//                    }
+//                }
             }
             
-            System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
+            System.out.println("Hash for: " + this.getVertexID() + " ->\t" + P);
 
             /* ==== Initialize angle propinquity end ==== */
             /* ==== Initialize conjugate propinquity start ==== 
@@ -272,29 +278,29 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
          */
         else if (this.getSuperstepCount() == 4) {
 
-            System.out.println("### SUPERSTEP 3 ###");
+//            System.out.println("### SUPERSTEP 3 ###");
 
             List<String> Nr_neighboors;
             Set<String> intersection = null;
             for (MapWritable message : messages) {
                 ArrayWritable incoming = (ArrayWritable) message.get(new Text("Nr"));
                 Nr_neighboors = Arrays.asList(incoming.toStrings());
-                System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
+//                System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
 
                 boolean Nr1IsLarger = Nr.size() > Nr_neighboors.size();
                 intersection = new HashSet<String>(Nr1IsLarger ? Nr_neighboors : Nr);
                 intersection.retainAll(Nr1IsLarger ? Nr : Nr_neighboors);
-                System.out.println("Intersection of " + Nr + " and " + Nr_neighboors + ": " + intersection);
-                System.out.println("");
+//                System.out.println("Intersection of " + Nr + " and " + Nr_neighboors + ": " + intersection);
+//                System.out.println("");
 
             }
             if (intersection != null) {
                 for (String vertex : intersection) {
-                    System.out.print("destination vertex: " + vertex);
+//                    System.out.print("destination vertex: " + vertex);
                     Set<String> messageList = new HashSet<String>(intersection);
-                    System.out.print(", message list to send: " + messageList);
+//                    System.out.print(", message list to send: " + messageList);
                     messageList.remove(vertex);
-                    System.out.print(", after removal: " + messageList);
+//                    System.out.print(", after removal: " + messageList);
 
                     if (!messageList.isEmpty()) {
                         ArrayWritable aw = new ArrayWritable(messageList.toArray(new String[0]));
@@ -303,43 +309,62 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                         this.sendMessage(new Text(vertex), outMsg);
                         //System.out.println("message sent: " + Arrays.asList(outMsg.get(new Text("Intersection")).toStrings()));
                     }
-                    System.out.println("");
+//                   System.out.println("");
                 }
             }
         } 
         // update the conjugate propinquity
         else if (this.getSuperstepCount() == 5) {
 
-            System.out.println("### SUPERSTEP 4 ###");
+            if(this.getVertexID().equals(new Text("1"))) {
+                System.out.println("### SUPERSTEP 4 ### Initialize Conjugate Propinquity");
+            }
 
-            System.out.println("BEFORE Hash for: " + this.getVertexID() + " -> " + P);
+//            System.out.println("BEFORE Hash for: " + this.getVertexID() + " -> " + P);
             for (MapWritable message : messages) {
                 ArrayWritable incoming = (ArrayWritable) message.get(new Text("Intersection"));
                 List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
-                System.out.println("");
-                System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
-                for (String vertex : Nr_neighboors) {
-                    int propinquity = 0;
-                    propinquity = P.get(vertex);
-                    if (propinquity != 0) {
-                        P.put(vertex, P.remove(vertex) + 1);
-                    } else {
-                        P.put(vertex, 1);
-                    }
-                }
+//                System.out.println("");
+//                System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
+                
+                updatePropinquity(Nr_neighboors,
+                        PropinquityUpdateOperation.INCREASE);
+//                for (String vertex : Nr_neighboors) {
+//                    int propinquity = 0;
+//                    propinquity = P.get(vertex);
+//                    if (propinquity != 0) {
+//                        P.put(vertex, P.remove(vertex) + 1);
+//                    } else {
+//                        P.put(vertex, 1);
+//                    }
+//                }
             }
-            System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
+            System.out.println("Hash for: " + this.getVertexID() + " ->\t" + P);
         }
         /* ==== Initialize conjugate propinquity end ==== */
     }
     
+    /* Converts the Set to a List and call the updatePropinquity method.
+     * @param vertexes The list of the vertex ids to increase the propinquity
+     * @param operation The enum that identifies the operation (INCREASE OR
+     * DECREASE)
+     */
+    private void updatePropinquity(Set<String> vertexes,PropinquityUpdateOperation operation) {
+        List<String> vertexesSetToList = new ArrayList<String>();
+        vertexesSetToList.addAll(vertexes);
+        updatePropinquity(vertexesSetToList,operation);
+    }
+    
+    /* Increase the propinquity for each of the list items.
+     * @param vertexes The list of the vertex ids to increase the propinquity
+     * @param operation The enum that identifies the operation (INCREASE OR
+     * DECREASE)
+     */
     private void updatePropinquity(List<String> vertexes,PropinquityUpdateOperation operation) {
         switch(operation) {
             case INCREASE :
                 for (String vertex : vertexes) {
-                    int propinquity = 0;
-                    propinquity = P.get(vertex);
-                    if (propinquity != 0) {
+                    if (P.get(vertex) != null && P.get(vertex) != 0) {
                         P.put(vertex, P.remove(vertex) + 1);
                     } else {
                         P.put(vertex, 1);
@@ -348,9 +373,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 break;
             case DECREASE :
                 for (String vertex : vertexes) {
-                    int propinquity = 0;
-                    propinquity = P.get(vertex);
-                    if (propinquity != 0) {
+                    if (P.get(vertex) != null && P.get(vertex) != 0) {
                         P.put(vertex, P.remove(vertex) - 1);
                     } else {
                         P.put(vertex, 1);

@@ -541,7 +541,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 }
                 if(Ni.contains(senderVertexId)){
                     //calculate II
-                    Set<String> RIList = calculateRI(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                    Set<String> RIList = calculateII(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
                             new HashSet<String>(Arrays.asList(messageValueNi.toStrings())));
                     for (String vertex : RIList) {
                         MapWritable outMsg = new MapWritable();
@@ -554,7 +554,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 }
                 if(Nd.contains(senderVertexId)){
                     //calculate DD
-                    Set<String> RDList = calculateRD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                    Set<String> RDList = calculateDD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
                             new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
                     for (String vertex : RDList) {
                         MapWritable outMsg = new MapWritable();

@@ -193,15 +193,18 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             outMsg.put(new Text("init"), this.getVertexID());
             this.sendMessageToNeighbors(outMsg);
         } else if (this.getSuperstepCount() == 1) {
-            
+            List<Edge<Text,NullWritable>> edges = this.getEdges();
+            Set<String> uniqueEdges = new HashSet<String>();
+            for(Edge edge : edges) {
+                uniqueEdges.add(edge.getDestinationVertexID().toString());
+            }
             for (MapWritable message : messages) {
                 Text id = (Text) message.get(new Text("init"));
-                Edge<Text, NullWritable> e = new Edge<Text, NullWritable>(id, null);
-                if (!this.getEdges().contains(e)) {
+                if(uniqueEdges.add(id.toString())) {
+                    Edge<Text, NullWritable> e = new Edge<Text, NullWritable>(id, null);
                     this.addEdge(e);
                 }
             }
-            
         } 
         
         /* ==== Initialize angle propinquity start ====

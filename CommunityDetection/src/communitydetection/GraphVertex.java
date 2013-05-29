@@ -246,11 +246,6 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 commonNeighboorsSet.remove(this.getVertexID().toString());
                 updatePropinquity(commonNeighboorsSet,
                         PropinquityUpdateOperation.INCREASE);
-//                for (String neighboor : Nr_neighboors) {
-//                    if (!neighboor.equals(this.getVertexID().toString())) {
-//                        P.put(neighboor, 1);
-//                    }
-//                }
             }
             
             System.out.println("Hash for: " + this.getVertexID() + " ->\t" + P);
@@ -332,15 +327,6 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 
                 updatePropinquity(Nr_neighboors,
                         PropinquityUpdateOperation.INCREASE);
-//                for (String vertex : Nr_neighboors) {
-//                    int propinquity = 0;
-//                    propinquity = P.get(vertex);
-//                    if (propinquity != 0) {
-//                        P.put(vertex, P.remove(vertex) + 1);
-//                    } else {
-//                        P.put(vertex, 1);
-//                    }
-//                }
             }
             System.out.println("Hash for: " + this.getVertexID() + " ->\t" + P);
         }

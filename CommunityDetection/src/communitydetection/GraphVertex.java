@@ -47,13 +47,16 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     }
     
     private Set<String> calculateRR(Set<String> nr) {
+        Set<String> out = new HashSet<String>();
+        
         if (Nr.size() > nr.size()) {
-            return Sets.intersection(nr, Nr);
+            return Sets.intersection(nr, Nr).copyInto(out);
         }
-        return Sets.intersection(Nr, nr);
+        return Sets.intersection(Nr, nr).copyInto(out);
     }
     
     private Set<String> calculateII(Set<String> nr, Set<String> ni) {
+        Set<String> out = new HashSet<String>();
         
         Set<String> t1;
         if (Nr.size() > Ni.size()) {
@@ -70,14 +73,15 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
 
         if (t1.size() > t2.size()) {
-            return Sets.intersection(t2, t1);
+            return Sets.intersection(t2, t1).copyInto(out);
         } 
         
-        return Sets.intersection(t1, t2);
+        return Sets.intersection(t1, t2).copyInto(out);
     }
     
     private Set<String> calculateDD(Set<String> nr, Set<String> nd) {
-
+        Set<String> out = new HashSet<String>();
+        
         Set<String> t1;
         if (Nr.size() > Nd.size()) {
             t1 = Sets.union(Nd, Nr);
@@ -93,13 +97,15 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
 
         if (t1.size() > t2.size()) {
-            return Sets.intersection(t2, t1);
+            return Sets.intersection(t2, t1).copyInto(out);
         }
 
-        return Sets.intersection(t1, t2);
+        return Sets.intersection(t1, t2).copyInto(out);
     }
 
     private Set<String> calculateRI(Set<String> nr, Set<String> ni) {
+        Set<String> out = new HashSet<String>();
+        
         Set<String> t1;
         if (Nr.size() > ni.size()) {
             t1 = Sets.intersection(ni, Nr);
@@ -129,13 +135,14 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
         
         if (u1.size() > t3.size()) {
-            return Sets.union(t3, u1);
+            return Sets.union(t3, u1).copyInto(out);
         }
 
-        return Sets.union(u1, t3);
+        return Sets.union(u1, t3).copyInto(out);
     }
     
     private Set<String> calculateRD(Set<String> nr, Set<String> nd) {
+        Set<String> out = new HashSet<String>();
         
         Set<String> t1;
         if (Nr.size() > nd.size()) {
@@ -166,10 +173,10 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
 
         if (u1.size() > t3.size()) {
-            return Sets.union(t3, u1);
+            return Sets.union(t3, u1).copyInto(out);
         }
 
-        return Sets.union(u1, t3);
+        return Sets.union(u1, t3).copyInto(out);
     }
     
     /* This method is responsible to initialize the propinquity
@@ -582,10 +589,11 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             }
 
             // NR ←NR + ND
+            Set<String> tmp = new HashSet<String>();
             if (Nr.size() > Nd.size()) {
-                Nr = Sets.union(Nd, Nr);
+                Nr = Sets.union(Nd, Nr).copyInto(tmp);
             } else {
-                Nr = Sets.union(Nr, Nd);
+                Nr = Sets.union(Nr, Nd).copyInto(tmp);
             }
             
             System.out.println("Hash for: " + this.getVertexID() + " -> " + P);

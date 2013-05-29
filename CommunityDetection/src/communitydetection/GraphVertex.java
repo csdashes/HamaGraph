@@ -33,10 +33,10 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     Map<String, Integer> P = new HashMap<String, Integer>();
     
     //cutting thresshold
-    int a = 1;
+    int a = 300;
     
     //emerging value
-    int b = 2;
+    int b = 5000;
     
     private int h(String a) {
         return Integer.valueOf(a);
@@ -290,22 +290,21 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             for (MapWritable message : messages) {
                 ArrayWritable incoming = (ArrayWritable) message.get(new Text("Nr"));
                 Nr_neighboors = Arrays.asList(incoming.toStrings());
-//                System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
+                System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
 
                 boolean Nr1IsLarger = Nr.size() > Nr_neighboors.size();
                 intersection = new HashSet<String>(Nr1IsLarger ? Nr_neighboors : Nr);
                 intersection.retainAll(Nr1IsLarger ? Nr : Nr_neighboors);
-//                System.out.println("Intersection of " + Nr + " and " + Nr_neighboors + ": " + intersection);
-//                System.out.println("");
-
-            }
-            if (intersection != null) {
+                System.out.println("Intersection of " + Nr + " and " + Nr_neighboors + ": " + intersection);
+                System.out.println("");
+                
+                if (intersection != null) {
                 for (String vertex : intersection) {
-//                    System.out.print("destination vertex: " + vertex);
+                    System.out.print("destination vertex: " + vertex);
                     Set<String> messageList = new HashSet<String>(intersection);
-//                    System.out.print(", message list to send: " + messageList);
+                    System.out.print(", message list to send: " + messageList);
                     messageList.remove(vertex);
-//                    System.out.print(", after removal: " + messageList);
+                    System.out.print(", after removal: " + messageList);
 
                     if (!messageList.isEmpty()) {
                         ArrayWritable aw = new ArrayWritable(messageList.toArray(new String[0]));
@@ -314,9 +313,11 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                         this.sendMessage(new Text(vertex), outMsg);
                         //System.out.println("message sent: " + Arrays.asList(outMsg.get(new Text("Intersection")).toStrings()));
                     }
-//                   System.out.println("");
+                   System.out.println("");
                 }
             }
+            }
+            
         } 
         // update the conjugate propinquity
         else if (this.getSuperstepCount() == 5) {
@@ -365,6 +366,8 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     } else {
                         P.put(vertex, 1);
                     }
+                    System.out.println("Vertex " + this.getVertexID().toString()
+                            + ":\t" + vertex + " is " + P.get(vertex));
                 }
                 break;
             case DECREASE :
@@ -498,6 +501,16 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 ArrayWritable messageValueNr = (ArrayWritable) message.get(new Text("DN NR"));
                 ArrayWritable messageValueNi = (ArrayWritable) message.get(new Text("DN NI"));
                 ArrayWritable messageValueNd = (ArrayWritable) message.get(new Text("DN ND"));
+                if(messageValueNi == null) {
+                    messageValueNi = new ArrayWritable(new String[0]);
+                }
+                if(messageValueNd == null) {
+                    messageValueNd = new ArrayWritable(new String[0]);
+                }
+                System.out.println("id: " + this.getVertexID().toString());
+                System.out.println("NR: " + Arrays.asList(messageValueNr.toStrings()));
+                System.out.println("NI: " + Arrays.asList(messageValueNi.toStrings()));
+                System.out.println("ND: " + Arrays.asList(messageValueNd.toStrings()));
                 if(Nr.contains(senderVertexId)){
                     //calculate RR
                     Set<String> RRList = calculateRR(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())));
@@ -610,5 +623,9 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         } else if (this.getSuperstepCount() > 8) {
             incremental(messages);
         }
+        
+//        if(this.getSuperstepCount() == 150) {
+//            voteToHalt();
+//        }
     }
 }

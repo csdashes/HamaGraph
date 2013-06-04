@@ -31,13 +31,11 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     Set<String> Nd = new HashSet<String>(); // The neighboors to be deleted
     // The propinquity value map
     Map<String, Integer> P = new HashMap<String, Integer>();
-    
     //cutting thresshold
     int a = 3;
-    
     //emerging value
     int b = 5;
-    
+
     private int h(String a) {
         return Integer.valueOf(a);
     }
@@ -45,19 +43,19 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     private int h(Text a) {
         return h(a.toString());
     }
-    
+
     private Set<String> calculateRR(Set<String> nr) {
         Set<String> out = new HashSet<String>();
-        
+
         if (Nr.size() > nr.size()) {
             return Sets.intersection(nr, Nr).copyInto(out);
         }
         return Sets.intersection(Nr, nr).copyInto(out);
     }
-    
+
     private Set<String> calculateII(Set<String> nr, Set<String> ni) {
         Set<String> out = new HashSet<String>();
-        
+
         Set<String> t1;
         if (Nr.size() > Ni.size()) {
             t1 = Sets.union(Ni, Nr);
@@ -74,14 +72,14 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
         if (t1.size() > t2.size()) {
             return Sets.intersection(t2, t1).copyInto(out);
-        } 
-        
+        }
+
         return Sets.intersection(t1, t2).copyInto(out);
     }
-    
+
     private Set<String> calculateDD(Set<String> nr, Set<String> nd) {
         Set<String> out = new HashSet<String>();
-        
+
         Set<String> t1;
         if (Nr.size() > Nd.size()) {
             t1 = Sets.union(Nd, Nr);
@@ -105,7 +103,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
     private Set<String> calculateRI(Set<String> nr, Set<String> ni) {
         Set<String> out = new HashSet<String>();
-        
+
         Set<String> t1;
         if (Nr.size() > ni.size()) {
             t1 = Sets.intersection(ni, Nr);
@@ -126,24 +124,24 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         } else {
             t3 = Sets.intersection(Ni, ni);
         }
-        
+
         Set<String> u1;
         if (t1.size() > t2.size()) {
             u1 = Sets.union(t2, t1);
         } else {
             u1 = Sets.union(t1, t2);
         }
-        
+
         if (u1.size() > t3.size()) {
             return Sets.union(t3, u1).copyInto(out);
         }
 
         return Sets.union(u1, t3).copyInto(out);
     }
-    
+
     private Set<String> calculateRD(Set<String> nr, Set<String> nd) {
         Set<String> out = new HashSet<String>();
-        
+
         Set<String> t1;
         if (Nr.size() > nd.size()) {
             t1 = Sets.intersection(nd, Nr);
@@ -178,7 +176,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
         return Sets.union(u1, t3).copyInto(out);
     }
-    
+
     /* This method is responsible to initialize the propinquity
      * hash map in each vertex. Consists of 2 steps, the angle
      * and the conjugate propinquity update.
@@ -200,21 +198,19 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             outMsg.put(new Text("init"), this.getVertexID());
             this.sendMessageToNeighbors(outMsg);
         } else if (this.getSuperstepCount() == 1) {
-            List<Edge<Text,NullWritable>> edges = this.getEdges();
+            List<Edge<Text, NullWritable>> edges = this.getEdges();
             Set<String> uniqueEdges = new HashSet<String>();
-            for(Edge edge : edges) {
+            for (Edge edge : edges) {
                 uniqueEdges.add(edge.getDestinationVertexID().toString());
             }
             for (MapWritable message : messages) {
                 Text id = (Text) message.get(new Text("init"));
-                if(uniqueEdges.add(id.toString())) {
+                if (uniqueEdges.add(id.toString())) {
                     Edge<Text, NullWritable> e = new Edge<Text, NullWritable>(id, null);
                     this.addEdge(e);
                 }
             }
-        } 
-        
-        /* ==== Initialize angle propinquity start ====
+        } /* ==== Initialize angle propinquity start ====
          * The goal is to increase the propinquity between 2 
          * vertexes according to the amoung of the common neighboors
          * between them.
@@ -222,8 +218,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
          * it and send the Set to all neighboors so they know
          * that for the vertexes of the Set, the sender vertex is
          * a common neighboor.
-         */
-        else if (this.getSuperstepCount() == 2) {
+         */ else if (this.getSuperstepCount() == 2) {
 
             for (Edge<Text, NullWritable> edge : neighboors) {
                 Nr.add(edge.getDestinationVertexID().toString());
@@ -233,17 +228,14 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
             outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
             outMsg.put(new Text("Sender"), this.getVertexID());
-            
-            this.sendMessageToNeighbors(outMsg);
-            
-        } 
-        
-        /* Initialize the propinquity hash map for the vertexes of the
-         * received list.
-         */
-        else if (this.getSuperstepCount() == 3) {
 
-            if(this.getVertexID().equals(new Text("1"))) {
+            this.sendMessageToNeighbors(outMsg);
+
+        } /* Initialize the propinquity hash map for the vertexes of the
+         * received list.
+         */ else if (this.getSuperstepCount() == 3) {
+
+            if (this.getVertexID().equals(new Text("1"))) {
                 System.out.println("\n### SUPERSTEP 2 ### Initialize Angle Propinquity");
             }
 
@@ -257,7 +249,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 updatePropinquity(commonNeighboorsSet,
                         PropinquityUpdateOperation.INCREASE);
             }
-            
+
             System.out.println("Hash for: " + this.getVertexID() + " ->\t" + P);
 
             /* ==== Initialize angle propinquity end ==== */
@@ -277,15 +269,12 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     this.sendMessage(edge.getDestinationVertexID(), outMsg);
                 }
             }
-        } 
-        
-        /* Find the intersection of the received vertex list and the
+        } /* Find the intersection of the received vertex list and the
          * neighboor list of the vertex so as to create a list of the
          * common neighboors between the sender and the receiver vertex.
          * Send the intersection list to every element of this list so
          * as to increase the propinquity.
-         */
-        else if (this.getSuperstepCount() == 4) {
+         */ else if (this.getSuperstepCount() == 4) {
 
 //            System.out.println("### SUPERSTEP 3 ###");
 
@@ -302,32 +291,31 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 intersection.retainAll(Nr1IsLarger ? Nr : Nr_neighboors);
 //                System.out.println("Intersection of " + Nr + " and " + Nr_neighboors + ": " + intersection);
 //                System.out.println("");
-                
+
                 if (intersection != null) {
-                for (String vertex : intersection) {
+                    for (String vertex : intersection) {
 //                    System.out.print("destination vertex: " + vertex);
-                    Set<String> messageList = new HashSet<String>(intersection);
+                        Set<String> messageList = new HashSet<String>(intersection);
 //                    System.out.print(", message list to send: " + messageList);
-                    messageList.remove(vertex);
+                        messageList.remove(vertex);
 //                    System.out.print(", after removal: " + messageList);
 
-                    if (!messageList.isEmpty()) {
-                        ArrayWritable aw = new ArrayWritable(messageList.toArray(new String[0]));
-                        outMsg = new MapWritable();
-                        outMsg.put(new Text("Intersection"), aw);
-                        this.sendMessage(new Text(vertex), outMsg);
-                        //System.out.println("message sent: " + Arrays.asList(outMsg.get(new Text("Intersection")).toStrings()));
+                        if (!messageList.isEmpty()) {
+                            ArrayWritable aw = new ArrayWritable(messageList.toArray(new String[0]));
+                            outMsg = new MapWritable();
+                            outMsg.put(new Text("Intersection"), aw);
+                            this.sendMessage(new Text(vertex), outMsg);
+                            //System.out.println("message sent: " + Arrays.asList(outMsg.get(new Text("Intersection")).toStrings()));
+                        }
+                        System.out.println("");
                     }
-                   System.out.println("");
                 }
             }
-            }
-            
-        } 
-        // update the conjugate propinquity
+
+        } // update the conjugate propinquity
         else if (this.getSuperstepCount() == 5) {
 
-            if(this.getVertexID().equals(new Text("1"))) {
+            if (this.getVertexID().equals(new Text("1"))) {
                 System.out.println("### SUPERSTEP 4 ### Initialize Conjugate Propinquity");
             }
 
@@ -337,7 +325,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
 //                System.out.println("");
 //                System.out.println(this.getVertexID() + "-> Message received: " + Nr_neighboors);
-                
+
                 updatePropinquity(Nr_neighboors,
                         PropinquityUpdateOperation.INCREASE);
             }
@@ -345,26 +333,26 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         }
         /* ==== Initialize conjugate propinquity end ==== */
     }
-    
+
     /* Converts the Set to a List and call the updatePropinquity method.
      * @param vertexes The list of the vertex ids to increase the propinquity
      * @param operation The enum that identifies the operation (INCREASE OR
      * DECREASE)
      */
-    private void updatePropinquity(Set<String> vertexes,PropinquityUpdateOperation operation) {
+    private void updatePropinquity(Set<String> vertexes, PropinquityUpdateOperation operation) {
         List<String> vertexesSetToList = new ArrayList<String>();
         vertexesSetToList.addAll(vertexes);
-        updatePropinquity(vertexesSetToList,operation);
+        updatePropinquity(vertexesSetToList, operation);
     }
-    
+
     /* Increase the propinquity for each of the list items.
      * @param vertexes The list of the vertex ids to increase the propinquity
      * @param operation The enum that identifies the operation (INCREASE OR
      * DECREASE)
      */
-    private void updatePropinquity(List<String> vertexes,PropinquityUpdateOperation operation) {
-        switch(operation) {
-            case INCREASE :
+    private void updatePropinquity(List<String> vertexes, PropinquityUpdateOperation operation) {
+        switch (operation) {
+            case INCREASE:
                 for (String vertex : vertexes) {
                     if (P.get(vertex) != null && P.get(vertex) != 0) {
                         P.put(vertex, P.remove(vertex) + 1);
@@ -375,7 +363,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 //                            + ":\t" + vertex + " is " + P.get(vertex));
                 }
                 break;
-            case DECREASE :
+            case DECREASE:
                 for (String vertex : vertexes) {
                     if (P.get(vertex) != null && P.get(vertex) != 0) {
                         P.put(vertex, P.remove(vertex) - 1);
@@ -432,7 +420,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
                 Set<String> tmp = new HashSet<String>(Ni);
                 tmp.remove(vertex);
-            
+
                 outMsg.put(new Text("PU+"), new ArrayWritable(tmp.toArray(new String[0])));
                 this.sendMessage(new Text(vertex), outMsg);
 
@@ -459,22 +447,21 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU+"));
                     updatePropinquity(Arrays.asList(messageValue.toStrings()),
                             PropinquityUpdateOperation.INCREASE);
-                }
-                else if(message.containsKey(new Text("PU-"))) {
+                } else if (message.containsKey(new Text("PU-"))) {
                     ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU-"));
                     updatePropinquity(Arrays.asList(messageValue.toStrings()),
                             PropinquityUpdateOperation.DECREASE);
                 }
             }
-            
-            
+
+
             System.out.println("Hash for: " + this.getVertexID() + " ->\t" + P);
 
-            
-            for (String vertex: Nr) {
+
+            for (String vertex : Nr) {
                 if (h(vertex) > h(this.getVertexID())) {
                     MapWritable outMsg = new MapWritable();
-                    
+
                     outMsg.put(new Text("Sender"), this.getVertexID());
                     outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
                     outMsg.put(new Text("DN NI"), new ArrayWritable(Ni.toArray(new String[0])));
@@ -482,7 +469,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     this.sendMessage(new Text(vertex), outMsg);
                 }
             }
-            
+
             for (String vertex : Ni) {
                 if (h(vertex) > h(this.getVertexID())) {
                     MapWritable outMsg = new MapWritable();
@@ -493,7 +480,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     this.sendMessage(new Text(vertex), outMsg);
                 }
             }
-            
+
             for (String vertex : Nd) {
                 if (h(vertex) > h(this.getVertexID())) {
                     MapWritable outMsg = new MapWritable();
@@ -513,17 +500,17 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 ArrayWritable messageValueNr = (ArrayWritable) message.get(new Text("DN NR"));
                 ArrayWritable messageValueNi = (ArrayWritable) message.get(new Text("DN NI"));
                 ArrayWritable messageValueNd = (ArrayWritable) message.get(new Text("DN ND"));
-                if(messageValueNi == null) {
+                if (messageValueNi == null) {
                     messageValueNi = new ArrayWritable(new String[0]);
                 }
-                if(messageValueNd == null) {
+                if (messageValueNd == null) {
                     messageValueNd = new ArrayWritable(new String[0]);
                 }
 //                System.out.println("id: " + this.getVertexID().toString());
 //                System.out.println("NR: " + Arrays.asList(messageValueNr.toStrings()));
 //                System.out.println("NI: " + Arrays.asList(messageValueNi.toStrings()));
 //                System.out.println("ND: " + Arrays.asList(messageValueNd.toStrings()));
-                if(Nr.contains(senderVertexId)){
+                if (Nr.contains(senderVertexId)) {
                     //calculate RR
                     Set<String> RRList = calculateRR(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())));
                     //calculate RI
@@ -532,7 +519,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                     //calculate RD
                     Set<String> RDList = calculateRD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
                             new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
-                    
+
                     for (String vertex : RRList) {
                         MapWritable outMsg = new MapWritable();
 
@@ -571,7 +558,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                         this.sendMessage(new Text(vertex), outMsg);
                     }
                 }
-                if(Ni.contains(senderVertexId)){
+                if (Ni.contains(senderVertexId)) {
                     //calculate II
                     Set<String> RIList = calculateII(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
                             new HashSet<String>(Arrays.asList(messageValueNi.toStrings())));
@@ -584,7 +571,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                         this.sendMessage(new Text(vertex), outMsg);
                     }
                 }
-                if(Nd.contains(senderVertexId)){
+                if (Nd.contains(senderVertexId)) {
                     //calculate DD
                     Set<String> RDList = calculateDD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
                             new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
@@ -620,14 +607,62 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             } else {
                 Nr = Sets.union(Nr, Nd).copyInto(tmp);
             }
-            
-//            System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
-            System.out.println("For vertex " + this.getVertexID() + "the Nr is: " + Nr);
-            System.out.println("");
-            //voteToHalt();
+
+////            System.out.println("Hash for: " + this.getVertexID() + " -> " + P);
+//            System.out.println("For vertex " + this.getVertexID() + "the Nr is: " + Nr);
+//            System.out.println("");
+            redistributeEdges();
+            voteToHalt();
         }
     }
+
+    private void redistributeEdges() {
+        HashMap<String, Edge<Text, NullWritable>> reversedEdges = edgesToMap(this.getEdges());
+
+
+        System.out.println("N:\t" + reversedEdges.keySet());
+        System.out.println("Ni:\t" + Ni);
+        System.out.println("Nd:\t" + Nd);
+
+        for (String newDestinationVertexID : Ni) {
+            reversedEdges.put(newDestinationVertexID, new Edge<Text, NullWritable>(new Text(newDestinationVertexID), null));
+        }
+        for (String oldDestinationVertexID : Nd) {
+            reversedEdges.remove(oldDestinationVertexID);
+        }
+        
+        this.setEdges(mapToEdges(reversedEdges));
+        
+        
+        
+        System.out.println("new N:\t" + edgesToMap(this.getEdges()).keySet());
+        System.out.println("");
+    }
+
+    /**
+     * Creates a map from destination vertex IDs to Edge objects
+     *
+     * @param edges The list of edges
+     * @return A map with the destination vertex IDs as key and the Edge object
+     * as value
+     */
+    private HashMap<String, Edge<Text, NullWritable>> edgesToMap(List<Edge<Text, NullWritable>> edges) {
+        HashMap<String, Edge<Text, NullWritable>> reversedEdges = new HashMap<String, Edge<Text, NullWritable>>();
+        for (Edge edge : edges) {
+            reversedEdges.put(edge.getDestinationVertexID().toString(), edge);
+        }
+        return reversedEdges;
+    }
     
+    /**
+     * Converts the map <vertexID,Edge> to a list of Edges
+     * @param map HashMap of <vertexID,Edge>
+     * @return list of Edges
+     */
+    private List<Edge<Text,NullWritable>> mapToEdges(HashMap<String, Edge<Text, NullWritable>> map) {
+        return new ArrayList(map.values());
+    }
+
     @Override
     public void compute(Iterable<MapWritable> messages) throws IOException {
 
@@ -636,9 +671,9 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         } else if (this.getSuperstepCount() > 8) {
             incremental(messages);
         }
-        
-        if(this.getSuperstepCount() == 50) {
-            voteToHalt();
-        }
+
+//        if(this.getSuperstepCount() == 50) {
+//            voteToHalt();
+//        }
     }
 }

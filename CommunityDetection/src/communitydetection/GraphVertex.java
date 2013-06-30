@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -44,6 +45,10 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     LongWritable minimalVertexId;
     TreeSet<LongWritable> pointsTo;
     boolean activated;
+    
+    private Stages mainStage = new Stages(2);
+    private Stages initializeStage = new Stages(6);
+    private Stages incrementalStage = new Stages(4);
 
     private int h(String a) {
         return Integer.valueOf(a);
@@ -213,115 +218,123 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
          * the neighboors. When a vertex receives the message it
          * creates a new edge between the sender and the receiver
          */
-        if (this.getSuperstepCount() == 0) {
-            outMsg = new MapWritable();
-            outMsg.put(new Text("init"), this.getVertexID());
-            this.sendMessageToNeighbors(outMsg);
-        } else if (this.getSuperstepCount() == 1) {
-            List<Edge<Text, NullWritable>> edges = this.getEdges();
-            Set<String> uniqueEdges = new HashSet<String>();
-            for (Edge edge : edges) {
-                uniqueEdges.add(edge.getDestinationVertexID().toString());
-            }
-            for (MapWritable message : messages) {
-                Text id = (Text) message.get(new Text("init"));
-                if (uniqueEdges.add(id.toString())) {
-                    Edge<Text, NullWritable> e = new Edge<Text, NullWritable>(id, null);
-                    this.addEdge(e);
+        switch (this.initializeStage.getStage()) {
+            case 0:
+                outMsg = new MapWritable();
+                outMsg.put(new Text("init"), this.getVertexID());
+                this.sendMessageToNeighbors(outMsg);
+                break;
+            case 1:
+                List<Edge<Text, NullWritable>> edges = this.getEdges();
+                Set<String> uniqueEdges = new HashSet<String>();
+                for (Edge edge : edges) {
+                    uniqueEdges.add(edge.getDestinationVertexID().toString());
                 }
-            }
-        } /* ==== Initialize angle propinquity start ====
-         * The goal is to increase the propinquity between 2 
-         * vertexes according to the amoung of the common neighboors
-         * between them.
-         * Initialize the Nr Set by adding all the neighboors in
-         * it and send the Set to all neighboors so they know
-         * that for the vertexes of the Set, the sender vertex is
-         * a common neighboor.
-         */ else if (this.getSuperstepCount() == 2) {
-
-            for (Edge<Text, NullWritable> edge : neighboors) {
-                Nr.add(edge.getDestinationVertexID().toString());
-            }
-
-
-            outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
-            outMsg.put(new Text("Sender"), this.getVertexID());
-
-            this.sendMessageToNeighbors(outMsg);
-
-        } /* Initialize the propinquity hash map for the vertexes of the
-         * received list.
-         */ else if (this.getSuperstepCount() == 3) {
-
-            for (MapWritable message : messages) {
-                ArrayWritable incoming = (ArrayWritable) message.get(new Text("Nr"));
-                Text sender = (Text) message.get(new Text("Sender"));
-                List<String> commonNeighboors = Arrays.asList(incoming.toStrings());
-                Set commonNeighboorsSet = new HashSet<String>(commonNeighboors);
-                commonNeighboorsSet.remove(this.getVertexID().toString());
-                updatePropinquity(commonNeighboorsSet,
-                        PropinquityUpdateOperation.INCREASE);
-            }
-            /* ==== Initialize angle propinquity end ==== */
-            /* ==== Initialize conjugate propinquity start ==== 
-             * The goal is to increase the propinquity of a vertex pair
-             * according to the amount of edges between the common neighboors
-             * of this pair.
-             * Send the neighboors list of the vertex to all his neighboors.
-             * To achive only one way communication, a function that compairs
-             * the vertex ids is being used.
-             */
-            for (Edge<Text, NullWritable> edge : neighboors) {
-                String neighboor = edge.getDestinationVertexID().toString();
-                if (Integer.parseInt(neighboor) > Integer.parseInt(this.getVertexID().toString())) {
-                    outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
-                    outMsg.put(new Text("Sender"), this.getVertexID());
-                    this.sendMessage(edge.getDestinationVertexID(), outMsg);
-                }
-            }
-        } /* Find the intersection of the received vertex list and the
-         * neighboor list of the vertex so as to create a list of the
-         * common neighboors between the sender and the receiver vertex.
-         * Send the intersection list to every element of this list so
-         * as to increase the propinquity.
-         */ else if (this.getSuperstepCount() == 4) {
-            List<String> Nr_neighboors;
-            Set<String> intersection = null;
-            for (MapWritable message : messages) {
-                ArrayWritable incoming = (ArrayWritable) message.get(new Text("Nr"));
-                Text sender = (Text) message.get(new Text("Sender"));
-                Nr_neighboors = Arrays.asList(incoming.toStrings());
-                boolean Nr1IsLarger = Nr.size() > Nr_neighboors.size();
-                intersection = new HashSet<String>(Nr1IsLarger ? Nr_neighboors : Nr);
-                intersection.retainAll(Nr1IsLarger ? Nr : Nr_neighboors);
-                if (intersection != null) {
-                    for (String vertex : intersection) {
-                        Set<String> messageList = new HashSet<String>(intersection);
-                        messageList.remove(vertex);
-
-                        if (!messageList.isEmpty()) {
-                            ArrayWritable aw = new ArrayWritable(messageList.toArray(new String[0]));
-                            outMsg = new MapWritable();
-                            outMsg.put(new Text("Intersection"), aw);
-                            this.sendMessage(new Text(vertex), outMsg);
-                        }
-                        //System.out.println("");
+                for (MapWritable message : messages) {
+                    Text id = (Text) message.get(new Text("init"));
+                    if (uniqueEdges.add(id.toString())) {
+                        Edge<Text, NullWritable> e = new Edge<Text, NullWritable>(id, null);
+                        this.addEdge(e);
                     }
                 }
-            }
+                break;
+            case 2:
+                /* ==== Initialize angle propinquity start ====
+                 * The goal is to increase the propinquity between 2 
+                 * vertexes according to the amoung of the common neighboors
+                 * between them.
+                 * Initialize the Nr Set by adding all the neighboors in
+                 * it and send the Set to all neighboors so they know
+                 * that for the vertexes of the Set, the sender vertex is
+                 * a common neighboor.
+                 */
+                for (Edge<Text, NullWritable> edge : neighboors) {
+                    Nr.add(edge.getDestinationVertexID().toString());
+                }
 
-        } // update the conjugate propinquity
-        else if (this.getSuperstepCount() == 5) {
 
-            for (MapWritable message : messages) {
-                ArrayWritable incoming = (ArrayWritable) message.get(new Text("Intersection"));
-                List<String> Nr_neighboors = Arrays.asList(incoming.toStrings());
+                outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
+                outMsg.put(new Text("Sender"), this.getVertexID());
 
-                updatePropinquity(Nr_neighboors,
-                        PropinquityUpdateOperation.INCREASE);
-            }
+                this.sendMessageToNeighbors(outMsg);
+                break;
+            case 3:
+                /* Initialize the propinquity hash map for the vertexes of the
+                 * received list.
+                 */
+                for (MapWritable message : messages) {
+                    ArrayWritable incoming = (ArrayWritable) message.get(new Text("Nr"));
+                    Text sender = (Text) message.get(new Text("Sender"));
+                    List<String> commonNeighboors = Arrays.asList(incoming.toStrings());
+                    Set commonNeighboorsSet = new HashSet<String>(commonNeighboors);
+                    commonNeighboorsSet.remove(this.getVertexID().toString());
+                    updatePropinquity(commonNeighboorsSet,
+                            PropinquityUpdateOperation.INCREASE);
+                }
+                /* ==== Initialize angle propinquity end ==== */
+                /* ==== Initialize conjugate propinquity start ==== 
+                 * The goal is to increase the propinquity of a vertex pair
+                 * according to the amount of edges between the common neighboors
+                 * of this pair.
+                 * Send the neighboors list of the vertex to all his neighboors.
+                 * To achive only one way communication, a function that compairs
+                 * the vertex ids is being used.
+                 */
+                for (Edge<Text, NullWritable> edge : neighboors) {
+                    String neighboor = edge.getDestinationVertexID().toString();
+                    if (Integer.parseInt(neighboor) > Integer.parseInt(this.getVertexID().toString())) {
+                        outMsg.put(new Text("Nr"), new ArrayWritable(Nr.toArray(new String[0])));
+                        outMsg.put(new Text("Sender"), this.getVertexID());
+                        this.sendMessage(edge.getDestinationVertexID(), outMsg);
+                    }
+                }
+                break;
+            case 4:
+                /* Find the intersection of the received vertex list and the
+                 * neighboor list of the vertex so as to create a list of the
+                 * common neighboors between the sender and the receiver vertex.
+                 * Send the intersection list to every element of this list so
+                 * as to increase the propinquity.
+                 */
+                List<String> Nr_neighboors;
+                Set<String> intersection = null;
+                for (MapWritable message : messages) {
+                    ArrayWritable incoming = (ArrayWritable) message.get(new Text("Nr"));
+                    Text sender = (Text) message.get(new Text("Sender"));
+                    Nr_neighboors = Arrays.asList(incoming.toStrings());
+                    boolean Nr1IsLarger = Nr.size() > Nr_neighboors.size();
+                    intersection = new HashSet<String>(Nr1IsLarger ? Nr_neighboors : Nr);
+                    intersection.retainAll(Nr1IsLarger ? Nr : Nr_neighboors);
+                    if (intersection != null) {
+                        for (String vertex : intersection) {
+                            Set<String> messageList = new HashSet<String>(intersection);
+                            messageList.remove(vertex);
+
+                            if (!messageList.isEmpty()) {
+                                ArrayWritable aw = new ArrayWritable(messageList.toArray(new String[0]));
+                                outMsg = new MapWritable();
+                                outMsg.put(new Text("Intersection"), aw);
+                                this.sendMessage(new Text(vertex), outMsg);
+                            }
+                            //System.out.println("");
+                        }
+                    }
+                }
+                break;
+            case 5:
+                // update the conjugate propinquity
+                for (MapWritable message : messages) {
+                    ArrayWritable incoming = (ArrayWritable) message.get(new Text("Intersection"));
+                    Nr_neighboors = Arrays.asList(incoming.toStrings());
+
+                    updatePropinquity(Nr_neighboors,
+                            PropinquityUpdateOperation.INCREASE);
+                }
+                this.mainStage.increaseStage();
+                break;
         }
+        
+        this.initializeStage.increaseStage();
         /* ==== Initialize conjugate propinquity end ==== */
     }
 
@@ -368,212 +381,215 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
      * @param messages The messages received in each superstep.
      */
     private void incremental(Iterable<MapWritable> messages) throws IOException {
-        if (this.getSuperstepCount() % 4 == 1) {
-            for (String vertex : P.keySet()) {
-                int propinquityValue = P.get(vertex);
-                if (propinquityValue <= a && Nr.contains(vertex)) {
-                    Nd.add(vertex);
-                    Nr.remove(vertex);
+        switch (this.incrementalStage.getStage()) {
+            case 0:
+                for (String vertex : P.keySet()) {
+                    int propinquityValue = P.get(vertex);
+                    if (propinquityValue <= a && Nr.contains(vertex)) {
+                        Nd.add(vertex);
+                        Nr.remove(vertex);
+                    }
+                    if (propinquityValue >= b && !Nr.contains(vertex)) {
+                        Ni.add(vertex);
+                    }
                 }
-                if (propinquityValue >= b && !Nr.contains(vertex)) {
-                    Ni.add(vertex);
-                }
-            }
-            for (String vertex : Nr) {
-                MapWritable outMsg = new MapWritable();
-
-                outMsg.put(new Text("PU+"), new ArrayWritable(Ni.toArray(new String[0])));
-                this.sendMessage(new Text(vertex), outMsg);
-
-                outMsg = new MapWritable();
-
-                outMsg.put(new Text("PU-"), new ArrayWritable(Nd.toArray(new String[0])));
-                this.sendMessage(new Text(vertex), outMsg);
-            }
-            for (String vertex : Ni) {
-                MapWritable outMsg = new MapWritable();
-
-                outMsg.put(new Text("PU+"), new ArrayWritable(Nr.toArray(new String[0])));
-                this.sendMessage(new Text(vertex), outMsg);
-
-                outMsg = new MapWritable();
-
-                Set<String> tmp = new HashSet<String>(Ni);
-                tmp.remove(vertex);
-
-                outMsg.put(new Text("PU+"), new ArrayWritable(tmp.toArray(new String[0])));
-                this.sendMessage(new Text(vertex), outMsg);
-
-            }
-            for (String vertex : Nd) {
-                MapWritable outMsg = new MapWritable();
-
-                outMsg.put(new Text("PU-"), new ArrayWritable(Nr.toArray(new String[0])));
-                this.sendMessage(new Text(vertex), outMsg);
-
-                outMsg = new MapWritable();
-
-                Set<String> tmp = new HashSet<String>(Nd);
-                tmp.remove(vertex);
-
-                outMsg.put(new Text("PU-"), new ArrayWritable(tmp.toArray(new String[0])));
-                this.sendMessage(new Text(vertex), outMsg);
-            }
-        } else if (this.getSuperstepCount() % 4 == 2) {
-            for (MapWritable message : messages) {
-                if (message.containsKey(new Text("PU+"))) {
-                    ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU+"));
-                    updatePropinquity(Arrays.asList(messageValue.toStrings()),
-                            PropinquityUpdateOperation.INCREASE);
-                } else if (message.containsKey(new Text("PU-"))) {
-                    ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU-"));
-                    updatePropinquity(Arrays.asList(messageValue.toStrings()),
-                            PropinquityUpdateOperation.DECREASE);
-                }
-            }
-
-
-            for (String vertex : Nr) {
-                if (h(vertex) > h(this.getVertexID())) {
+                for (String vertex : Nr) {
                     MapWritable outMsg = new MapWritable();
 
-                    outMsg.put(new Text("Sender"), this.getVertexID());
-                    outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
-                    outMsg.put(new Text("DN NI"), new ArrayWritable(Ni.toArray(new String[0])));
-                    outMsg.put(new Text("DN ND"), new ArrayWritable(Nd.toArray(new String[0])));
+                    outMsg.put(new Text("PU+"), new ArrayWritable(Ni.toArray(new String[0])));
+                    this.sendMessage(new Text(vertex), outMsg);
+
+                    outMsg = new MapWritable();
+
+                    outMsg.put(new Text("PU-"), new ArrayWritable(Nd.toArray(new String[0])));
                     this.sendMessage(new Text(vertex), outMsg);
                 }
-            }
-
-            for (String vertex : Ni) {
-                if (h(vertex) > h(this.getVertexID())) {
+                for (String vertex : Ni) {
                     MapWritable outMsg = new MapWritable();
 
-                    outMsg.put(new Text("Sender"), this.getVertexID());
-                    outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
-                    outMsg.put(new Text("DN NI"), new ArrayWritable(Ni.toArray(new String[0])));
+                    outMsg.put(new Text("PU+"), new ArrayWritable(Nr.toArray(new String[0])));
                     this.sendMessage(new Text(vertex), outMsg);
-                }
-            }
 
-            for (String vertex : Nd) {
-                if (h(vertex) > h(this.getVertexID())) {
+                    outMsg = new MapWritable();
+
+                    Set<String> tmp = new HashSet<String>(Ni);
+                    tmp.remove(vertex);
+
+                    outMsg.put(new Text("PU+"), new ArrayWritable(tmp.toArray(new String[0])));
+                    this.sendMessage(new Text(vertex), outMsg);
+
+                }
+                for (String vertex : Nd) {
                     MapWritable outMsg = new MapWritable();
 
-                    outMsg.put(new Text("Sender"), this.getVertexID());
-                    outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
-                    outMsg.put(new Text("DN ND"), new ArrayWritable(Nd.toArray(new String[0])));
+                    outMsg.put(new Text("PU-"), new ArrayWritable(Nr.toArray(new String[0])));
+                    this.sendMessage(new Text(vertex), outMsg);
+
+                    outMsg = new MapWritable();
+
+                    Set<String> tmp = new HashSet<String>(Nd);
+                    tmp.remove(vertex);
+
+                    outMsg.put(new Text("PU-"), new ArrayWritable(tmp.toArray(new String[0])));
                     this.sendMessage(new Text(vertex), outMsg);
                 }
-            }
-        } else if (this.getSuperstepCount() % 4 == 3) {
-            for (MapWritable message : messages) {
-                Text messageValue = (Text) message.get(new Text("Sender"));
-                String senderVertexId = messageValue.toString();
-                ArrayWritable messageValueNr = (ArrayWritable) message.get(new Text("DN NR"));
-                ArrayWritable messageValueNi = (ArrayWritable) message.get(new Text("DN NI"));
-                ArrayWritable messageValueNd = (ArrayWritable) message.get(new Text("DN ND"));
-                if (messageValueNi == null) {
-                    messageValueNi = new ArrayWritable(new String[0]);
-                }
-                if (messageValueNd == null) {
-                    messageValueNd = new ArrayWritable(new String[0]);
-                }
-                if (Nr.contains(senderVertexId)) {
-                    //calculate RR
-                    Set<String> RRList = calculateRR(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())));
-                    //calculate RI
-                    Set<String> RIList = calculateRI(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
-                            new HashSet<String>(Arrays.asList(messageValueNi.toStrings())));
-                    //calculate RD
-                    Set<String> RDList = calculateRD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
-                            new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
-
-                    for (String vertex : RRList) {
-                        MapWritable outMsg = new MapWritable();
-
-                        outMsg.put(new Text("UP+"), new ArrayWritable(RIList.toArray(new String[0])));
-                        this.sendMessage(new Text(vertex), outMsg);
-
-                        outMsg = new MapWritable();
-
-                        outMsg.put(new Text("UP-"), new ArrayWritable(RDList.toArray(new String[0])));
-                        this.sendMessage(new Text(vertex), outMsg);
+                break;
+            case 1:
+                for (MapWritable message : messages) {
+                    if (message.containsKey(new Text("PU+"))) {
+                        ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU+"));
+                        updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                                PropinquityUpdateOperation.INCREASE);
+                    } else if (message.containsKey(new Text("PU-"))) {
+                        ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU-"));
+                        updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                                PropinquityUpdateOperation.DECREASE);
                     }
-                    for (String vertex : RIList) {
+                }
+
+                for (String vertex : Nr) {
+                    if (h(vertex) > h(this.getVertexID())) {
                         MapWritable outMsg = new MapWritable();
 
-                        outMsg.put(new Text("UP+"), new ArrayWritable(RRList.toArray(new String[0])));
-                        this.sendMessage(new Text(vertex), outMsg);
-
-                        outMsg = new MapWritable();
-
-                        Set<String> tmp = new HashSet<String>(RIList);
-                        tmp.remove(vertex);
-                        outMsg.put(new Text("UP-"), new ArrayWritable(tmp.toArray(new String[0])));
-                        this.sendMessage(new Text(vertex), outMsg);
-                    }
-                    for (String vertex : RDList) {
-                        MapWritable outMsg = new MapWritable();
-
-                        outMsg.put(new Text("UP-"), new ArrayWritable(RRList.toArray(new String[0])));
-                        this.sendMessage(new Text(vertex), outMsg);
-
-                        outMsg = new MapWritable();
-
-                        Set<String> tmp = new HashSet<String>(RDList);
-                        tmp.remove(vertex);
-                        outMsg.put(new Text("UP-"), new ArrayWritable(tmp.toArray(new String[0])));
+                        outMsg.put(new Text("Sender"), this.getVertexID());
+                        outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
+                        outMsg.put(new Text("DN NI"), new ArrayWritable(Ni.toArray(new String[0])));
+                        outMsg.put(new Text("DN ND"), new ArrayWritable(Nd.toArray(new String[0])));
                         this.sendMessage(new Text(vertex), outMsg);
                     }
                 }
-                if (Ni.contains(senderVertexId)) {
-                    //calculate II
-                    Set<String> RIList = calculateII(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
-                            new HashSet<String>(Arrays.asList(messageValueNi.toStrings())));
-                    for (String vertex : RIList) {
+
+                for (String vertex : Ni) {
+                    if (h(vertex) > h(this.getVertexID())) {
                         MapWritable outMsg = new MapWritable();
 
-                        Set<String> tmp = new HashSet<String>(RIList);
-                        tmp.remove(vertex);
-                        outMsg.put(new Text("UP+"), new ArrayWritable(tmp.toArray(new String[0])));
+                        outMsg.put(new Text("Sender"), this.getVertexID());
+                        outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
+                        outMsg.put(new Text("DN NI"), new ArrayWritable(Ni.toArray(new String[0])));
                         this.sendMessage(new Text(vertex), outMsg);
                     }
                 }
-                if (Nd.contains(senderVertexId)) {
-                    //calculate DD
-                    Set<String> RDList = calculateDD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
-                            new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
-                    for (String vertex : RDList) {
+
+                for (String vertex : Nd) {
+                    if (h(vertex) > h(this.getVertexID())) {
                         MapWritable outMsg = new MapWritable();
 
-                        Set<String> tmp = new HashSet<String>(RDList);
-                        tmp.remove(vertex);
-                        outMsg.put(new Text("UP-"), new ArrayWritable(tmp.toArray(new String[0])));
+                        outMsg.put(new Text("Sender"), this.getVertexID());
+                        outMsg.put(new Text("DN NR"), new ArrayWritable(Nr.toArray(new String[0])));
+                        outMsg.put(new Text("DN ND"), new ArrayWritable(Nd.toArray(new String[0])));
                         this.sendMessage(new Text(vertex), outMsg);
                     }
                 }
-            }
-        } else if (this.getSuperstepCount() % 4 == 0) {
-            for (MapWritable message : messages) {
-                if (message.containsKey(new Text("UP+"))) {
-                    ArrayWritable messageValue = (ArrayWritable) message.get(new Text("UP+"));
-                    updatePropinquity(Arrays.asList(messageValue.toStrings()),
-                            PropinquityUpdateOperation.INCREASE);
-                } else if (message.containsKey(new Text("UP-"))) {
-                    ArrayWritable messageValue = (ArrayWritable) message.get(new Text("UP-"));
-                    updatePropinquity(Arrays.asList(messageValue.toStrings()),
-                            PropinquityUpdateOperation.DECREASE);
-                }
-            }
+                break;
+            case 2:
+                for (MapWritable message : messages) {
+                    Text messageValue = (Text) message.get(new Text("Sender"));
+                    String senderVertexId = messageValue.toString();
+                    ArrayWritable messageValueNr = (ArrayWritable) message.get(new Text("DN NR"));
+                    ArrayWritable messageValueNi = (ArrayWritable) message.get(new Text("DN NI"));
+                    ArrayWritable messageValueNd = (ArrayWritable) message.get(new Text("DN ND"));
+                    if (messageValueNi == null) {
+                        messageValueNi = new ArrayWritable(new String[0]);
+                    }
+                    if (messageValueNd == null) {
+                        messageValueNd = new ArrayWritable(new String[0]);
+                    }
+                    if (Nr.contains(senderVertexId)) {
+                        //calculate RR
+                        Set<String> RRList = calculateRR(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())));
+                        //calculate RI
+                        Set<String> RIList = calculateRI(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                                new HashSet<String>(Arrays.asList(messageValueNi.toStrings())));
+                        //calculate RD
+                        Set<String> RDList = calculateRD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                                new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
 
-            // NR ←NR + ND
-            Set<String> tmp = new HashSet<String>();
-            if (Nr.size() > Nd.size()) {
-                Nr = Sets.union(Nd, Nr).copyInto(tmp);
-            } else {
-                Nr = Sets.union(Nr, Nd).copyInto(tmp);
-            }
+                        for (String vertex : RRList) {
+                            MapWritable outMsg = new MapWritable();
+
+                            outMsg.put(new Text("UP+"), new ArrayWritable(RIList.toArray(new String[0])));
+                            this.sendMessage(new Text(vertex), outMsg);
+
+                            outMsg = new MapWritable();
+
+                            outMsg.put(new Text("UP-"), new ArrayWritable(RDList.toArray(new String[0])));
+                            this.sendMessage(new Text(vertex), outMsg);
+                        }
+                        for (String vertex : RIList) {
+                            MapWritable outMsg = new MapWritable();
+
+                            outMsg.put(new Text("UP+"), new ArrayWritable(RRList.toArray(new String[0])));
+                            this.sendMessage(new Text(vertex), outMsg);
+
+                            outMsg = new MapWritable();
+
+                            Set<String> tmp = new HashSet<String>(RIList);
+                            tmp.remove(vertex);
+                            outMsg.put(new Text("UP-"), new ArrayWritable(tmp.toArray(new String[0])));
+                            this.sendMessage(new Text(vertex), outMsg);
+                        }
+                        for (String vertex : RDList) {
+                            MapWritable outMsg = new MapWritable();
+
+                            outMsg.put(new Text("UP-"), new ArrayWritable(RRList.toArray(new String[0])));
+                            this.sendMessage(new Text(vertex), outMsg);
+
+                            outMsg = new MapWritable();
+
+                            Set<String> tmp = new HashSet<String>(RDList);
+                            tmp.remove(vertex);
+                            outMsg.put(new Text("UP-"), new ArrayWritable(tmp.toArray(new String[0])));
+                            this.sendMessage(new Text(vertex), outMsg);
+                        }
+                    }
+                    if (Ni.contains(senderVertexId)) {
+                        //calculate II
+                        Set<String> RIList = calculateII(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                                new HashSet<String>(Arrays.asList(messageValueNi.toStrings())));
+                        for (String vertex : RIList) {
+                            MapWritable outMsg = new MapWritable();
+
+                            Set<String> tmp = new HashSet<String>(RIList);
+                            tmp.remove(vertex);
+                            outMsg.put(new Text("UP+"), new ArrayWritable(tmp.toArray(new String[0])));
+                            this.sendMessage(new Text(vertex), outMsg);
+                        }
+                    }
+                    if (Nd.contains(senderVertexId)) {
+                        //calculate DD
+                        Set<String> RDList = calculateDD(new HashSet<String>(Arrays.asList(messageValueNr.toStrings())),
+                                new HashSet<String>(Arrays.asList(messageValueNd.toStrings())));
+                        for (String vertex : RDList) {
+                            MapWritable outMsg = new MapWritable();
+
+                            Set<String> tmp = new HashSet<String>(RDList);
+                            tmp.remove(vertex);
+                            outMsg.put(new Text("UP-"), new ArrayWritable(tmp.toArray(new String[0])));
+                            this.sendMessage(new Text(vertex), outMsg);
+                        }
+                    }
+                }
+                break;
+            case 3:
+                for (MapWritable message : messages) {
+                    if (message.containsKey(new Text("UP+"))) {
+                        ArrayWritable messageValue = (ArrayWritable) message.get(new Text("UP+"));
+                        updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                                PropinquityUpdateOperation.INCREASE);
+                    } else if (message.containsKey(new Text("UP-"))) {
+                        ArrayWritable messageValue = (ArrayWritable) message.get(new Text("UP-"));
+                        updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                                PropinquityUpdateOperation.DECREASE);
+                    }
+                }
+
+                // NR ←NR + ND
+                Set<String> tmp = new HashSet<String>();
+                if (Nr.size() > Nd.size()) {
+                    Nr = Sets.union(Nd, Nr).copyInto(tmp);
+                } else {
+                    Nr = Sets.union(Nr, Nd).copyInto(tmp);
+                }
 
             printNeighboors();
             redistributeEdges();
@@ -582,8 +598,12 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 //                voteToHalt();  
 //            }
 //            times++;
-            
+                break;
+//            case 4:
+//                break;
         }
+        
+        this.incrementalStage.increaseStage();
     }
 
     private void redistributeEdges() {
@@ -626,14 +646,29 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
 
     @Override
     public void compute(Iterable<MapWritable> messages) throws IOException {
-
-        if (this.getSuperstepCount() < 6) {
-            initialize(messages);
-        } else if (this.getSuperstepCount() >8 && this.getSuperstepCount() < 13) { //before it was > 8
-            incremental(messages);
-        } 
-        else if(this.getSuperstepCount() >= 13){
-            detectCommunities(messages);
+        
+        if (this.getVertexID().toString().equals("0")) {
+           //terminationCondition(messages);
+        } else {
+            switch (this.mainStage.getStage()) {
+                case 0:
+                    initialize(messages);
+                    break;
+                case 1:
+                    incremental(messages);
+                    break;
+            }
+            
+//            if (this.getSuperstepCount() < 6) {
+//                initialize(messages);
+//            } else if (this.getSuperstepCount() > 8 
+//                    //&& this.getSuperstepCount() < 13
+//                    ) { //before it was > 8
+//                incremental(messages);
+//            } 
+//            else if (this.getSuperstepCount() >= 13) {
+//                detectCommunities(messages);
+//            }
         }
     }
 
@@ -669,7 +704,22 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 }
             }
         }
-        //System.out.println("");
+    }
+
+    private void terminationCondition(Iterable<MapWritable> messages) throws IOException {
+        long term = 0L;
+        for (MapWritable m : messages) {
+            term += ((IntWritable)m.keySet().toArray()[0]).get();
+        }
         
+        if (term < 5) {
+            for (long i=1; i < this.getNumVertices(); i++) {
+                MapWritable outMsg;
+                outMsg = new MapWritable();
+                outMsg.put(new Text("voteToHalt"), null);
+                this.sendMessage(new Text(String.valueOf(i)), outMsg);
+                
+            }
+        }
     }
 }

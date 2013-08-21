@@ -22,3 +22,5 @@ CommunityDetection/output/part-00000
 CommunityDetection/input/partitions/*
 
 *.DS_Store
+
+CommunityDetection/output/part-00001

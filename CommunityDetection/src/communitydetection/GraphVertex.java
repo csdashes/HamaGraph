@@ -35,7 +35,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
     // The propinquity value map
     Map<String, Integer> P = new HashMap<String, Integer>();
     //cutting thresshold
-    int a = 3;
+    int a = 2;
     //emerging value
     int b = 5;
     
@@ -343,10 +343,10 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
      * @param operation The enum that identifies the operation (INCREASE OR
      * DECREASE)
      */
-    private void updatePropinquity(Set<String> vertexes, PropinquityUpdateOperation operation) {
+    private int updatePropinquity(Set<String> vertexes, PropinquityUpdateOperation operation) {
         List<String> vertexesSetToList = new ArrayList<String>();
         vertexesSetToList.addAll(vertexes);
-        updatePropinquity(vertexesSetToList, operation);
+        return updatePropinquity(vertexesSetToList, operation);
     }
 
     /* Increase the propinquity for each of the list items.
@@ -354,7 +354,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
      * @param operation The enum that identifies the operation (INCREASE OR
      * DECREASE)
      */
-    private void updatePropinquity(List<String> vertexes, PropinquityUpdateOperation operation) {
+    private int updatePropinquity(List<String> vertexes, PropinquityUpdateOperation operation) {
         switch (operation) {
             case INCREASE:
                 for (String vertex : vertexes) {
@@ -375,12 +375,14 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 }
                 break;
         }
+        return vertexes.size();
     }
 
     /* This method is responsible for the incremental update
      * @param messages The messages received in each superstep.
      */
     private void incremental(Iterable<MapWritable> messages) throws IOException {
+        int changes = 0;
         switch (this.incrementalStage.getStage()) {
             case 0:
                 for (String vertex : P.keySet()) {
@@ -438,11 +440,11 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
                 for (MapWritable message : messages) {
                     if (message.containsKey(new Text("PU+"))) {
                         ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU+"));
-                        updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                        changes += updatePropinquity(Arrays.asList(messageValue.toStrings()),
                                 PropinquityUpdateOperation.INCREASE);
                     } else if (message.containsKey(new Text("PU-"))) {
                         ArrayWritable messageValue = (ArrayWritable) message.get(new Text("PU-"));
-                        updatePropinquity(Arrays.asList(messageValue.toStrings()),
+                        changes += updatePropinquity(Arrays.asList(messageValue.toStrings()),
                                 PropinquityUpdateOperation.DECREASE);
                     }
                 }
@@ -594,13 +596,7 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
             printNeighboors();
             redistributeEdges();
             printNeighboors();
-//            if( times == 2 ) {
-//                voteToHalt();  
-//            }
-//            times++;
                 break;
-//            case 4:
-//                break;
         }
         
         this.incrementalStage.increaseStage();
@@ -650,25 +646,26 @@ public class GraphVertex extends Vertex<Text, NullWritable, MapWritable> {
         if (this.getVertexID().toString().equals("0")) {
            //terminationCondition(messages);
         } else {
-            switch (this.mainStage.getStage()) {
-                case 0:
-                    initialize(messages);
-                    break;
-                case 1:
-                    incremental(messages);
-                    break;
-            }
-            
-//            if (this.getSuperstepCount() < 6) {
-//                initialize(messages);
-//            } else if (this.getSuperstepCount() > 8 
-//                    //&& this.getSuperstepCount() < 13
-//                    ) { //before it was > 8
-//                incremental(messages);
-//            } 
-//            else if (this.getSuperstepCount() >= 13) {
-//                detectCommunities(messages);
+//            switch (this.mainStage.getStage()) {
+//                case 0:
+//                    initialize(messages);
+//                    break;
+//                case 1:
+//                    incremental(messages);
+//                    break;
 //            }
+            
+            if (this.getSuperstepCount() < 6) {
+                initialize(messages);
+            }  
+            else if (this.getSuperstepCount() >= 13) {
+                detectCommunities(messages);
+            }
+            else if (this.getSuperstepCount() > 8 
+                    //&& this.getSuperstepCount() < 13
+                    ) { //before it was > 8
+                incremental(messages);
+            }
         }
     }
 

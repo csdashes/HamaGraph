@@ -63,7 +63,7 @@ public class CommunityDetection {
         graphJob.setInputKeyClass(LongWritable.class);
         graphJob.setInputValueClass(Text.class);
         
-        graphJob.setVertexInputReaderClass(GraphTextReader.class);
+        graphJob.setVertexInputReaderClass(GraphNewTextReader.class);
         graphJob.setPartitioner(HashPartitioner.class);
         
         graphJob.setOutputFormat(TextOutputFormat.class);
